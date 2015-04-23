@@ -1,0 +1,8 @@
+CMakeCache.txt
+Makefile
+CMakeFiles 
+cpm-bin
+cmake_install.cmake
+cpm-packages
+*~
+
