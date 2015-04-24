@@ -28,6 +28,7 @@
 #include <cassert>
 #include "Envelope.hpp"
 #include "Transition.hpp"
+#include <memory> 
 
 /*
  * This implements a TransitionList and updates "Intra-Completes-Before"
@@ -41,14 +42,14 @@ public:
     TransitionList (TransitionList &);
     ~TransitionList();
 
-    TransitionList& operator= (TransitionList &t);
+    //TransitionList& operator= (TransitionList &t);
 
     int GetId ();
-    bool AddTransition (Transition *t);
+    bool AddTransition (std::unique_ptr<Transition> t);
     unsigned int size();
     void eraseFrom(unsigned int s);
 
-    std::vector <Transition> _tlist;
+    std::vector <std::unique_ptr<Transition> > _tlist;
     std::list <int> _ulist;
     std::stringstream _leaks_string;
     int _leaks_count;
@@ -56,15 +57,15 @@ public:
 
 private:
     int    _id;
-    inline bool intraCB (Transition &f, Transition &s) {
-        Envelope *env_f = f.GetEnvelope();
-        Envelope *env_s = s.GetEnvelope();
+    inline bool intraCB (const Transition &f, const Transition &s) const {
+        const Envelope &env_f = f.GetEnvelope();
+        const Envelope &env_s = s.GetEnvelope();
 
         /*
          * Find Intra-Completes-Before :
          * 1) Blocking rule
          */
-        if (env_f->isBlockingType ()
+        if (env_f.isBlockingType ()) {
             return true;
         }
 
@@ -72,58 +73,58 @@ private:
          * 2) Send order rule
          */
 
-        if (env_f->isSendType () &&
-            env_s->isSendType () &&
-            env_f->dest == env_s->dest &&
-            env_f->comm == env_s->comm &&
-            env_f->stag == env_s->stag) {
+        if (env_f.isSendType () &&
+            env_s.isSendType () &&
+            env_f.dest == env_s.dest &&
+            env_f.comm == env_s.comm &&
+            env_f.stag == env_s.stag) {
             return true;
         }
         /*
          * 3) Recv order rule
          */
-        if (env_f->isRecvType () &&
-            env_s->isRecvType () &&
-            (env_f->src == env_s->src ||
-             env_f->src == WILDCARD) &&
-            env_f->comm == env_s->comm &&
-            (env_f->rtag == env_s->rtag ||
-             env_f->rtag == WILDCARD)) {
+        if (env_f.isRecvType () &&
+            env_s.isRecvType () &&
+            (env_f.src == env_s.src ||
+             env_f.src == WILDCARD) &&
+            env_f.comm == env_s.comm &&
+            (env_f.rtag == env_s.rtag ||
+             env_f.rtag == WILDCARD)) {
             return true;
         }
 
         /*
          * 4) iRecv -> Wait order rule
          */
-        if (env_f->func_id == IRECV &&
-                ((env_s->func_id == WAIT) ||
-                 (env_s->func_id == TEST)) &&
-                env_f->count == env_s->count) {
+        if (env_f.func_id == IRECV &&
+                ((env_s.func_id == WAIT) ||
+                 (env_s.func_id == TEST)) &&
+                env_f.count == env_s.count) {
             return true;
         }
 
-        if (env_f->func_id == ISEND &&
-                ((env_s->func_id == WAIT) ||
-                 (env_s->func_id == TEST)) &&
-                env_f->count == env_s->count) {
+        if (env_f.func_id == ISEND &&
+                ((env_s.func_id == WAIT) ||
+                 (env_s.func_id == TEST)) &&
+                env_f.count == env_s.count) {
             return true;
         }
 
-        if (((env_s->func_id == WAITALL) ||
-                (env_s->func_id == WAITANY) ||
-                (env_s->func_id == TESTANY) ||
-                (env_s->func_id == TESTALL) ) &&
-                (env_f->func_id == IRECV ||
-                 env_f->func_id == ISEND)) {
+        if (((env_s.func_id == WAITALL) ||
+                (env_s.func_id == WAITANY) ||
+                (env_s.func_id == TESTANY) ||
+                (env_s.func_id == TESTALL) ) &&
+                (env_f.func_id == IRECV ||
+                 env_f.func_id == ISEND)) {
        
-            for (int i = 0 ; i < env_s->count ; i++) {
-                if (env_s->req_procs[i] == env_f->index) {
+            for (int i = 0 ; i < env_s.count ; i++) {
+                if (env_s.req_procs[i] == env_f.index) {
                     return true;
                 }
             }
         }
 
-        if (env_s->func_id == FINALIZE) {
+        if (env_s.func_id == FINALIZE) {
             return true;
         }
 

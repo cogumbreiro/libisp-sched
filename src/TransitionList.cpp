@@ -22,7 +22,7 @@
 
 #include <iostream>
 #include <sstream>
-
+/*
 TransitionList::TransitionList () {
     last_matched = -1;
 	_leaks_count = 0;
@@ -46,8 +46,8 @@ TransitionList::~TransitionList() {
     for(; ti != tie; ti++) {
         ti->unref();
     }
-}
-
+}*/
+/*
 TransitionList& TransitionList::operator= (TransitionList &t) {
     std::vector <Transition>::iterator  iter;
     std::vector <Transition>::iterator  iter_end = t._tlist.end();
@@ -69,39 +69,46 @@ TransitionList& TransitionList::operator= (TransitionList &t) {
       _ulist.push_back(*ui);
     }
     return (*this);
-}
+}*/
 
 int TransitionList::GetId () {
     return _id;
 }
 
-bool TransitionList::AddTransition (Transition *t) {
-    int index = t->GetEnvelope ()->index;
+bool TransitionList::AddTransition (std::unique_ptr<Transition> t) {
+    int index = t->GetEnvelope().index;
     int msize = (int)_tlist.size();
 
-    if (index <=  msize-1) {
-        if (*(t->GetEnvelope()) == *_tlist[index].GetEnvelope()) {
-            _tlist[index].GetEnvelope()->issue_id = -1;
-            t->unref();
-            t->t = _tlist[index].t;
+    if (index <= msize-1) {
+        if (t->GetEnvelope() == _tlist[index]->GetEnvelope()) {
+            _tlist[index]->GetEnvelope().issue_id = -1;
+            //XXX: t->t = _tlist[index].t;
             return true;
         }
         return false;
     }
 
-    _tlist.push_back (*t);
-    t = &_tlist.back();   // important! not a no-op
+    _tlist.push_back (std::move(t));
+    auto & trans = _tlist.back();
+//    t = &_tlist.back();   // important! not a no-op
     int size = (int)_tlist.size ();
     CB c(_id, size-1);
 
-    Envelope *env_t = t->GetEnvelope();
-    Envelope *env_f;
+    auto env_t = trans->GetEnvelope();
+    //const Envelope &env_f;
     bool blocking_flag = false;
 
-    if (env_t->func_id == ISEND || env_t->func_id == IRECV) {
+    if (env_t.func_id == ISEND || env_t.func_id == IRECV) {
         _ulist.push_back (index);
-    } else if (env_t->func_id == WAIT || env_t->func_id == WAITALL ||
-               env_t->func_id == TEST || env_t->func_id == TESTALL) {
+    } else if (env_t.func_id == WAIT || env_t.func_id == WAITALL ||
+               env_t.func_id == TEST || env_t.func_id == TESTALL) {
+        for (auto & req : env_t.req_procs) { 
+            if (_tlist[req]->AddIntraCB(c.Copy())) {
+                t->mod_ancestors().push_back(req);
+            }
+            _ulist.remove (req);
+        }
+        /*
         std::vector<int>::iterator it = env_t->req_procs.begin ();
         std::vector<int>::iterator it_end = env_t->req_procs.end ();
         for (; it != it_end; it++) {
@@ -109,59 +116,58 @@ bool TransitionList::AddTransition (Transition *t) {
                 t->mod_ancestors().push_back(*it);
             }
             _ulist.remove (*it);
-        }
+        }*/
     }
 
-    std::vector<Transition>::reverse_iterator iter = _tlist.rbegin() + 1;
-    std::vector<Transition>::reverse_iterator iter_end = _tlist.rend();
+    auto iter = _tlist.rbegin() + 1;
+    auto iter_end = _tlist.rend();
 
     int i = size - 2;
-    bool flag = false;
     for (; iter != iter_end; iter++) {
-        flag = intraCB(*iter, *t);
-        if (flag) {
+        auto & curr = **iter;
+        if (intraCB(curr, *t)) {
             if (!blocking_flag) {
-                if (iter->AddIntraCB(c)) {
+                if (curr.AddIntraCB(c.Copy())) {
                     t->mod_ancestors().push_back(i);
                 }
                 
                 /* avo 06/11/08 - trying not to add redundant edges */
-                env_f = iter->GetEnvelope();
+                auto env_f = curr.GetEnvelope();
                 
                 //a blocking call occured earlier
                 //to avoid unnecessary CB edges
-                if (env_f->isBlockingType())
-              
+                if (env_f.isBlockingType()) {
                     blocking_flag = true;
+                }
             } else if (blocking_flag) {
-                if (env_t->func_id != SEND && (_ulist.size () == 0 || index < _ulist.front ())) {
+                if (env_t.func_id != SEND && (_ulist.size () == 0 || index < _ulist.front ())) {
                     return true;
                 }
                 //if a blocking call occured in the past
                 //the only calls that can slip through it are
                 //Isend and Irecv
-                env_f = iter->GetEnvelope();
-                if (env_f->func_id == IRECV) {
-                    if (iter->AddIntraCB(c)) {
+                auto env_f = curr.GetEnvelope();
+                if (env_f.func_id == IRECV) {
+                    if (curr.AddIntraCB(c.Copy())) {
                         t->mod_ancestors().push_back(i);
                     }
 
                     //terminate if this satisfies the Irecv intraCB rule
-                    if (env_t->isRecvType() &&
-                        env_f->src == env_t->src &&
-                        env_f->comm == env_t->comm &&
-                        env_f->rtag == env_t->rtag)
+                    if (env_t.isRecvType() &&
+                        env_f.src == env_t.src &&
+                        env_f.comm == env_t.comm &&
+                        env_f.rtag == env_t.rtag)
                         return true;
-                } else if (env_f->func_id == ISEND) {
-                    if (iter->AddIntraCB(c)) {
+                } else if (env_f.func_id == ISEND) {
+                    if (curr.AddIntraCB(c.Copy())) {
                         t->mod_ancestors().push_back(i);
                     }
                     
                     //terminate if this satisfies the Isend intraCB rule
-                    if (env_t->isSendType() &&
-                        env_f->dest == env_t->dest &&
-                        env_f->comm == env_t->comm &&
-                        env_f->stag == env_t->stag)
+                    if (env_t.isSendType() &&
+                        env_f.dest == env_t.dest &&
+                        env_f.comm == env_t.comm &&
+                        env_f.stag == env_t.stag)
                         return true;
                 }
             }
