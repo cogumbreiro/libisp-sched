@@ -76,17 +76,17 @@ public:
     }
     void PrintLog();
 
-    inline bool isSendType () {
+    inline bool isSendType () const {
         return (func_id == SSEND || func_id == SEND ||
 				func_id == RSEND || func_id == ISEND);
     }
 
-    inline bool isRecvType () {
+    inline bool isRecvType () const {
         return (func_id == IRECV || func_id == RECV ||
                 func_id == PROBE || func_id == IPROBE);
     }
     
-    inline bool isCollectiveType () {
+    inline bool isCollectiveType () const {
         return (func_id == BARRIER || func_id == BCAST || func_id == CART_CREATE
                 || func_id == COMM_CREATE || func_id == COMM_DUP
                 || func_id == COMM_SPLIT || func_id == COMM_FREE
@@ -98,7 +98,7 @@ public:
                 || func_id == SCAN || func_id == REDUCE_SCATTER);
     }
 
-    inline bool isBlockingType () {
+    inline bool isBlockingType () const {
         return (func_id == RECV || func_id == SSEND
                 || func_id == WAIT || func_id == PROBE || func_id == IPROBE
                 || func_id == FINALIZE || func_id == TEST
