@@ -2,7 +2,11 @@ CMakeCache.txt
 Makefile
 CMakeFiles 
 cpm-bin
-cmake_install.cmake
+*.cmake
 cpm-packages
 *~
+.DS_Store
+CMakeFiles/
+test-cb
+test-tr
 
