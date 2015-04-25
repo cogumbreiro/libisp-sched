@@ -25,10 +25,10 @@
 #include <list>
 #include <algorithm>
 #include <sstream>
-#include <cassert>
+#include <memory> 
+
 #include "Envelope.hpp"
 #include "Transition.hpp"
-#include <memory> 
 
 /*
  * This implements a TransitionList and updates "Intra-Completes-Before"
@@ -36,30 +36,22 @@
 class TransitionList {
 
 public:
-    TransitionList ();
-    TransitionList (int id);
+    inline int getId() const { return id; }
+    inline unsigned int size() const { return tlist.size(); }
 
-    TransitionList (TransitionList &);
-    ~TransitionList();
-
-    //TransitionList& operator= (TransitionList &t);
-
-    int GetId ();
-    bool AddTransition (std::unique_ptr<Transition> t);
-    unsigned int size();
-    void eraseFrom(unsigned int s);
-
-    std::vector <std::unique_ptr<Transition> > _tlist;
-    std::list <int> _ulist;
-    std::stringstream _leaks_string;
-    int _leaks_count;
-    int last_matched;
+    bool addTransition (std::unique_ptr<Transition> t);
 
 private:
-    int    _id;
+    std::vector <std::unique_ptr<Transition> > tlist;
+    std::list <int> ulist;
+    /*
+    std::stringstream _leaks_string;
+    int _leaks_count;
+    int last_matched;*/
+    int  id;
     inline bool intraCB (const Transition &f, const Transition &s) const {
-        const Envelope &env_f = f.GetEnvelope();
-        const Envelope &env_s = s.GetEnvelope();
+        const auto &env_f = f.getEnvelope();
+        const auto &env_s = s.getEnvelope();
 
         /*
          * Find Intra-Completes-Before :

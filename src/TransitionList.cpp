@@ -18,95 +18,43 @@
  * Contact:     isp-dev@cs.utah.edu
  */
 
-#include "TransitionList.hpp"
-
 #include <iostream>
 #include <sstream>
-/*
-TransitionList::TransitionList () {
-    last_matched = -1;
-	_leaks_count = 0;
-    _leaks_string.clear ();
-}
 
-TransitionList::TransitionList (int id) : _id (id) {
-    last_matched = -1;
-	_leaks_count = 0;
-    _leaks_string.clear ();
-}
+#include "TransitionList.hpp"
 
-TransitionList::TransitionList (TransitionList &tl) {
-    *this = tl;
-}
-
-TransitionList::~TransitionList() {
-    std::vector <Transition>::iterator ti = _tlist.begin();
-    std::vector <Transition>::iterator tie = _tlist.end();
-    int i=0;
-    for(; ti != tie; ti++) {
-        ti->unref();
-    }
-}*/
-/*
-TransitionList& TransitionList::operator= (TransitionList &t) {
-    std::vector <Transition>::iterator  iter;
-    std::vector <Transition>::iterator  iter_end = t._tlist.end();
-
-    std::vector <Transition>::iterator ti = _tlist.begin();
-    std::vector <Transition>::iterator tie = _tlist.end();
-
-    last_matched = t.last_matched;
-    _leaks_string << t._leaks_string.str();
-    _leaks_count = t._leaks_count;
-    _tlist.clear ();
-    _id = t.GetId ();
-    for (iter = t._tlist.begin(); iter != iter_end;    iter++) {
-        _tlist.push_back(Transition(*iter, true));
-    }
-    std::list<int>::iterator ui = t._ulist.begin();
-    std::list<int>::iterator uie = t._ulist.end();
-    for(; ui != uie; ui++) {
-      _ulist.push_back(*ui);
-    }
-    return (*this);
-}*/
-
-int TransitionList::GetId () {
-    return _id;
-}
-
-bool TransitionList::AddTransition (std::unique_ptr<Transition> t) {
-    int index = t->GetEnvelope().index;
-    int msize = (int)_tlist.size();
+bool TransitionList::addTransition(std::unique_ptr<Transition> t) {
+    int index = t->getEnvelope().index;
+    int msize = (int) tlist.size();
 
     if (index <= msize-1) {
-        if (t->GetEnvelope() == _tlist[index]->GetEnvelope()) {
-            _tlist[index]->GetEnvelope().issue_id = -1;
+        if (t->getEnvelope() == tlist[index]->getEnvelope()) {
+            tlist[index]->getEnvelope().issue_id = -1;
             //XXX: t->t = _tlist[index].t;
             return true;
         }
         return false;
     }
 
-    _tlist.push_back (std::move(t));
-    auto & trans = _tlist.back();
+    tlist.push_back(std::move(t));
+    auto & trans = tlist.back();
 //    t = &_tlist.back();   // important! not a no-op
-    int size = (int)_tlist.size ();
-    CB c(_id, size-1);
+    int size = (int) tlist.size ();
+    CB c(id, size-1);
 
-    auto env_t = trans->GetEnvelope();
+    auto env_t = trans->getEnvelope();
     //const Envelope &env_f;
     bool blocking_flag = false;
 
     if (env_t.func_id == ISEND || env_t.func_id == IRECV) {
-        _ulist.push_back (index);
+        ulist.push_back (index);
     } else if (env_t.func_id == WAIT || env_t.func_id == WAITALL ||
                env_t.func_id == TEST || env_t.func_id == TESTALL) {
         for (auto & req : env_t.req_procs) { 
-            if (_tlist[req]->AddIntraCB(c.Copy())) {
-                t->mod_ancestors().push_back(req);
+            if (tlist[req]->addIntraCB(c.copy())) {
+                t->addAncestor(req);
             }
-            _ulist.remove (req);
+            ulist.remove(req);
         }
         /*
         std::vector<int>::iterator it = env_t->req_procs.begin ();
@@ -119,20 +67,20 @@ bool TransitionList::AddTransition (std::unique_ptr<Transition> t) {
         }*/
     }
 
-    auto iter = _tlist.rbegin() + 1;
-    auto iter_end = _tlist.rend();
+    auto iter = tlist.rbegin() + 1;
+    auto iter_end = tlist.rend();
 
     int i = size - 2;
     for (; iter != iter_end; iter++) {
         auto & curr = **iter;
         if (intraCB(curr, *t)) {
             if (!blocking_flag) {
-                if (curr.AddIntraCB(c.Copy())) {
-                    t->mod_ancestors().push_back(i);
+                if (curr.addIntraCB(c.copy())) {
+                    t->addAncestor(i);
                 }
                 
                 /* avo 06/11/08 - trying not to add redundant edges */
-                auto env_f = curr.GetEnvelope();
+                auto env_f = curr.getEnvelope();
                 
                 //a blocking call occured earlier
                 //to avoid unnecessary CB edges
@@ -140,16 +88,16 @@ bool TransitionList::AddTransition (std::unique_ptr<Transition> t) {
                     blocking_flag = true;
                 }
             } else if (blocking_flag) {
-                if (env_t.func_id != SEND && (_ulist.size () == 0 || index < _ulist.front ())) {
+                if (env_t.func_id != SEND && (ulist.size() == 0 || index < ulist.front())) {
                     return true;
                 }
                 //if a blocking call occured in the past
                 //the only calls that can slip through it are
                 //Isend and Irecv
-                auto env_f = curr.GetEnvelope();
+                auto env_f = curr.getEnvelope();
                 if (env_f.func_id == IRECV) {
-                    if (curr.AddIntraCB(c.Copy())) {
-                        t->mod_ancestors().push_back(i);
+                    if (curr.addIntraCB(c.copy())) {
+                        t->addAncestor(i);
                     }
 
                     //terminate if this satisfies the Irecv intraCB rule
@@ -159,8 +107,8 @@ bool TransitionList::AddTransition (std::unique_ptr<Transition> t) {
                         env_f.rtag == env_t.rtag)
                         return true;
                 } else if (env_f.func_id == ISEND) {
-                    if (curr.AddIntraCB(c.Copy())) {
-                        t->mod_ancestors().push_back(i);
+                    if (curr.addIntraCB(c.copy())) {
+                        t->addAncestor(i);
                     }
                     
                     //terminate if this satisfies the Isend intraCB rule
@@ -175,16 +123,4 @@ bool TransitionList::AddTransition (std::unique_ptr<Transition> t) {
         i--;
     }
     return true;
-}
-
-unsigned int TransitionList::size() { return _tlist.size(); }
-
-void TransitionList::eraseFrom(unsigned int s) {
-/*
-    std::vector <Transition*>::iterator ti = _tlist.begin()+s;
-    std::vector <Transition*>::iterator tie = _tlist.end();
-    //while(ti++ != tie) 
-    for(; ti != tie; ti++) delete *ti;
-    _tlist.erase(_tlist.begin()+s, _tlist.end());
-*/
 }
