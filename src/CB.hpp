@@ -52,7 +52,7 @@ public:
         this->_index = c._index;
         return *this;
     }*/
-    std::unique_ptr<CB> Copy() {
+    std::unique_ptr<CB> copy() {
         std::unique_ptr<CB> ptr(new CB(*this));
         return std::move(ptr);
     }
