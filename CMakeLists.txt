@@ -24,7 +24,9 @@ add_library(isp-sched
         src/CB.hpp
         src/name2id.cpp src/name2id.hpp
         src/Envelope.cpp src/Envelope.hpp
-        src/Transition.cpp src/Transition.hpp)
+        src/Transition.cpp src/Transition.hpp
+        src/TransitionList.cpp src/TransitionList.hpp
+        )
 
 target_include_directories(isp-sched PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
