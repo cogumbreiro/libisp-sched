@@ -10,28 +10,9 @@
  * See LICENSE for licensing information
  */
 
-/*
- * ISP: MPI Dynamic Verification Tool
- *
- * File:        Transition.cpp
- * Description: Implements handling of a single transition in an interleaving
- * Contact:     isp-dev@cs.utah.edu
- */
-
 #include "Transition.hpp"
 
 #include <signal.h>
-/*
-Transition::Transition() {
-}
-
-Transition::Transition(const Transition &t_) {
-    *this = t_;
-}
-
-Transition::Transition(std::unique_ptr<Envelope> e) : envelope(std::move(e)) {
-    
-}*/
 
 bool Transition::AddIntraCB(std::unique_ptr<CB> c) {
     if(IsNew(*c)) {
@@ -69,10 +50,6 @@ std::vector<int> &Transition::get_ancestors() const {
 std::vector<int> &Transition::mod_ancestors() {
     return t->ancestors;
 }
-/*
-Transition_internal::Transition_internal (std::unique_ptr<Envelope> env) : curr_matching(new CB(-1,-1)) {
-    envelope = std::move(env);
-}*/
 
 bool Transition_internal::is_curr_matching_set() {
     return *curr_matching != CB(-1,-1);

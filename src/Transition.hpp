@@ -37,13 +37,6 @@ public:
 
 class Transition {
 public:
-    /*
-    Transition();
-    Transition(const Transition &t_);
-    Transition(std::unique_ptr<Envelope> e);
-    */
-    //Transition &operator=(const Transition &t_);
-
     inline Envelope& GetEnvelope () const {return *envelope;}
     bool AddIntraCB(std::unique_ptr<CB> c);
     bool AddInterCB(std::unique_ptr<CB> c);
