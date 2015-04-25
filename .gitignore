@@ -9,4 +9,4 @@ cpm-packages
 CMakeFiles/
 test-cb
 test-tr
-
+libisp-sched.a

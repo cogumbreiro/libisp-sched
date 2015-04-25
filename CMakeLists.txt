@@ -15,34 +15,23 @@ CPM_Finish()
 ##
 
 ADD_DEFINITIONS(
-    -std=c++11 # Or -std=c++0x
+    -std=c++1y # Or -std=c++0x
 )
 
 enable_testing()
 
-add_executable(test-cb src/CB.hpp src/TestCB.cpp)
+add_library(isp-sched 
+        src/CB.hpp
+        src/name2id.cpp src/name2id.hpp
+        src/Envelope.cpp src/Envelope.hpp
+        src/Transition.cpp src/Transition.hpp)
+
+target_include_directories(isp-sched PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
+add_executable(test-cb src/TestCB.cpp)
 add_test(test-cb test-cb)
-target_link_libraries(test-cb ${CPM_LIBRARIES})
+#target_link_libraries(test-cb ${CPM_LIBRARIES})
 
-
-add_executable(test-tr src/CB.hpp src/Transition.cpp src/Transition.hpp src/TestTransition.cpp)
+add_executable(test-tr src/TestTransition.cpp)
 add_test(test-tr test-tr)
-target_link_libraries(test-tr ${CPM_LIBRARIES})
 
-add_executable(test-tl src/CB.hpp src/Transition.cpp src/Transition.hpp src/TestTransition.cpp src/TransitionList.cpp src/TransitionList.hpp)
-add_test(test-tl test-tl)
-target_link_libraries(test-tl ${CPM_LIBRARIES})
-
-#set(Sources
-#    src/TestTransition.cpp
-#    src/name2id.cpp src/name2id.hpp
-#    src/Envelope.cpp src/Envelope.hpp
-#    src/Transition.hpp src/Transition.cpp
-#    src/TransitionList.hpp src/TransitionList.cpp)
-
-#-----------------------------------------------------------------------
-# Setup executable
-#-----------------------------------------------------------------------
-#set(EXE_NAME cpm-test)
-#add_executable(${EXE_NAME} ${Sources})
-#target_link_libraries(${EXE_NAME} ${CPM_LIBRARIES})
