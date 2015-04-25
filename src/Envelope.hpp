@@ -63,18 +63,12 @@ public:
     std::string         filename;
     int                 linenumber;
     unsigned int        ref;
-/* == fprs begin == */
     bool in_exall;
-/* == fprs end == */
 
-    void ref_inc();
-    void ref_dec();
-    bool isshared();
     inline void Issued () {
         static int issue_number = 0;
         issue_id = ++issue_number;
     }
-    void PrintLog();
 
     inline bool isSendType () const {
         return (func_id == SSEND || func_id == SEND ||
@@ -106,7 +100,7 @@ public:
                 || func_id == WAITALL || func_id == TESTALL || isCollectiveType());
     }
 
-    inline bool isWaitorTestType () {
+    inline bool isWaitorTestType () const {
         return (func_id == WAIT || func_id == TEST
                 || func_id == WAITANY || func_id == TESTANY
                 || func_id == WAITALL || func_id == TESTALL
@@ -114,18 +108,13 @@ public:
     }
 
 
-    bool        operator==(Envelope &);
-    bool        operator!=(Envelope &);
-    friend std::ostream &operator<< (std::ostream &os, Envelope &e);
+    bool operator==(const Envelope &) const;
+    bool operator!=(const Envelope &) const;
     Envelope();
     Envelope(const Envelope &e);
 };
 
-/* == fprs begin == */
-Envelope *CreateEnvelope (char *buffer, int id, int order_id, bool to_expl);
-// Envelope *CreateEnvelope (char *buffer, int id, int order_id);
-/* == fprs end == */
-std::ostream &operator<< (std::ostream *os, Envelope &e);
+std::unique_ptr<Envelope> CreateEnvelope (const char *buffer, int id, int order_id, bool to_expl);
 
 #endif
 

@@ -18,7 +18,6 @@
  * Contact:     isp-dev@cs.utah.edu
  */
 
-//#include "Scheduler.hpp"
 #include "Envelope.hpp"
 #include "Options.hpp"
 #include <sstream>
@@ -26,41 +25,25 @@
 #include <stdlib.h>
 #include <assert.h>
 
-//static int env_count = 0;
-
-/* == fprs begin == */
-Envelope *CreateEnvelope (char *buffer, int id, int order_id, bool to_expl) {
-// Envelope *CreateEnvelope (char *buffer, int id, int order_id) {
-/* == fprs end == */
-/* == fprs begin == */
-    int pcontrol_mode;
-/* == fprs end == */;
-
-    //std::cout << "Scheduler received from process " << id << ": " << buffer << std::endl;
-    std::string         str;
-    std::istringstream  iss;
-    Envelope            *env = new Envelope;
-    env->issue_id = -1;
-
-/* == fprs begin == */
-env->in_exall = to_expl;
-/* == fprs end == */
-
-    if ((std::string (buffer)).empty ()) {
-        if (!Options::_quiet) {
-            std::cout << "EMPTY BUFFER " << "id is " << id << " !!!!!!!\n";
-        }
-        delete env;
-        return NULL;
+std::unique_ptr<Envelope> CreateEnvelope (const std::string &buffer, int id, int order_id, bool to_expl) {
+    if (buffer.empty()) {
+        return nullptr;
     }
-    iss.str (std::string (buffer));
-    //std::cout <<"RECEIVED from " << id <<" : " << buffer << "\n";
+
+    // create result object
+    std::unique_ptr<Envelope> env = std::make_unique<Envelope>();
+    env->issue_id = -1;
+    env->in_exall = to_expl;
+
+    std::istringstream iss;   
+    iss.str(buffer);
     iss >> env->index;
     
     //read in the function name and parse it to generate the function id
-    iss >> str;
-    env->func = str;
-    env->func_id = name2id::getId (str);
+    std::string func_name;
+    iss >> func_name;
+    env->func = func_name;
+    env->func_id = name2id::getId(func_name);
     env->id = id;
     env->order_id = order_id;
     env->comm = -2;
@@ -68,11 +51,7 @@ env->in_exall = to_expl;
     //read in the display name 
     iss >> env->display_name;
 
-		//CGD
-/* == fprs start == */
-    // if(env->func_id != LEAK){
-    if(env->func_id != LEAK && env->func_id != PCONTROL){
-/* == fprs end == */
+    if (env->func_id != LEAK && env->func_id != PCONTROL){
        iss >> env->data_type;
        env->typesMatch = true;
     }
@@ -192,9 +171,7 @@ env->in_exall = to_expl;
     case ALLTOALL:
     case ALLTOALLV:
     case SCAN:
-/* == fprs begin == */
 	case EXSCAN:
-/* == fprs end == */
     case BARRIER:
     case ALLREDUCE:
     case REDUCE_SCATTER:
@@ -227,37 +204,28 @@ env->in_exall = to_expl;
         }
         break;
 
-/* == fprs begin == */
     case PCONTROL:
+        int pcontrol_mode;
         iss >> pcontrol_mode;
         env->stag = pcontrol_mode;  // NOTE: we store the mode information in "stag"!!!!
         break;
-/* == fprs end == */
 
     case LEAK:
     case ABORT:
     case FINALIZE:
         break;
     }
-    if (Options::_report_progress > 0 && 
-        order_id % Options::_report_progress == 0) {
-//        std::cout << "Processed for rank " << id <<" MPI call No. " << order_id << "*" <<
-//            *env << "*" << std::endl;
-        std::cout << "Processed: " << *env << std::endl;
-    }
     return env;
 }
 
 Envelope::Envelope() {
-    //env_count++;
-    //     printf("env_count : %d\n", env_count);
     dest = 0;
     dest_wildcard = false;
     src = 0;
     src_wildcard = false;
 }
 
-bool Envelope::operator== (Envelope &e) {
+bool Envelope::operator== (const Envelope &e) const {
     if (e.func != func) {
         return false;
     }
@@ -276,9 +244,7 @@ bool Envelope::operator== (Envelope &e) {
     case ALLTOALL:
     case ALLTOALLV:
     case SCAN:
-/* == fprs begin == */
 	case EXSCAN:
-/* == fprs end == */
     case ALLREDUCE:
     case REDUCE:
     case REDUCE_SCATTER:
@@ -314,15 +280,13 @@ bool Envelope::operator== (Envelope &e) {
     case LEAK:
         return (e.filename == filename && e.linenumber == linenumber &&
                 e.count == count);
-/* == fprs start == */
     case PCONTROL:
         return (e.stag == stag);
-/* == fprs end == */
     }
     return false;
 }
 
-bool Envelope::operator!= (Envelope &e) {
+bool Envelope::operator!= (const Envelope &e) const {
     return !((*this) == e);
 }
 
