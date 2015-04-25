@@ -27,27 +27,33 @@
 #include <cassert>
 #include <memory>
 
-class Transition_internal {
-public:
-    bool is_curr_matching_set();
-
-    std::vector<int> ancestors;
-    std::unique_ptr<CB> curr_matching;
-};
-
 class Transition {
 public:
-    inline Envelope& GetEnvelope () const {return *envelope;}
-    bool AddIntraCB(std::unique_ptr<CB> c);
-    bool AddInterCB(std::unique_ptr<CB> c);
-    void moveCurrMatching();
-    void set_curr_matching(std::unique_ptr<CB> c);
-    CB &get_curr_matching() const;
-    std::vector<int> &get_ancestors() const;
-    std::vector<int> &mod_ancestors();
+    inline Envelope& getEnvelope () const {return *envelope;}
+    bool addIntraCB(std::unique_ptr<CB> c);
+    bool addInterCB(std::unique_ptr<CB> c);
+    //void moveCurrMatching();
 
-    std::unique_ptr<Transition_internal> t;
+    void setCurrMatching(std::unique_ptr<CB> c) {
+        curr_matching = std::move(c);
+    }
+
+    const CB & getCurrMatching() const {
+        return *curr_matching;
+    }
+
+    inline const std::vector<int> &getAncestors() const {
+        return ancestors;
+    }
+
+    void addAncestor(const int ancestor) {
+        ancestors.push_back(ancestor);
+    }
+    //std::vector<int> &mod_ancestors();
+
 private:
+    std::vector<int> ancestors;
+    std::unique_ptr<CB> curr_matching;
     std::unique_ptr<Envelope> envelope;
     std::vector <std::unique_ptr<CB> > inter_cb;
     std::vector <std::unique_ptr<CB> > intra_cb;
@@ -65,7 +71,7 @@ private:
     /**
      * Tests whether the transition contains the given cb.
      */
-    inline bool IsNew(const CB &c) const {
+    inline bool isNew(const CB &c) const {
         return !vec_contains(intra_cb, c)  && !vec_contains(inter_cb, c);
     }
 
