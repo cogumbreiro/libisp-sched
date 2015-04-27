@@ -45,7 +45,7 @@ public:
     bool operator!= (const CB &c) {
         return !(*this == c);
     }
-    // XXX: method required by (set) ordering used in `InterleavingTree`
+    // XXX: required by Node::createAllMatchingSends
     friend bool operator< (const CB &a, const CB &b) {
         return a.pid < b.pid || (a.pid == b.pid && a.index < b.index);
     }
