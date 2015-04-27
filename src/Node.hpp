@@ -44,6 +44,12 @@ enum NTYPE {
     DEADLOCK_NODE
 };
 
+struct MpiFunc {
+    MpiFunc(CB h, Envelope & e) : handle(h), envelope(e) {}
+    CB handle;
+    Envelope & envelope;
+};
+
 class Node {
 
 public:
@@ -70,7 +76,7 @@ public:
     bool anyAncestorMatched (const CB c, const vector<int> &l) const;
     vector <list<int> > createEnabledTransitions() const;
     bool addCollectiveAmple (const vector <list <int> > &l, int collective);
-    void addWaitorTestAmple(const vector <list <int> > &l);
+    void addWaitorTestAmple(const vector<MpiFunc> &funcs);
     bool addNonWildcardReceive(const vector <list <int> > &l);
     optional<CB> getMatchingSend (const vector <list <int> > &l, CB c);
     bool getAllMatchingSends (vector <list <int> > &l, CB &c,
@@ -105,6 +111,7 @@ private:
     inline const Transition & getTransition(int pid, int op_index) const {
         return _tlist[pid]->get(op_index);
     }
+    vector<MpiFunc> asMpiFunc(const vector<list<int> > &indices);
 };
 
 #endif

@@ -47,6 +47,7 @@ void Node::deepCopy() {
     tlist_dealloc = true;
 }
 */
+
 int Node::getTotalMpiCalls() const {
     int sum = 0;
     for (auto & trans : _tlist) {
@@ -160,14 +161,21 @@ bool Node::anyAncestorMatched(const CB handle, const vector<int> &ops) const {
     return result;
 }
 
-void Node::addWaitorTestAmple(const vector<list<int> > &indices) {
-    list <CB> blist;
+vector<MpiFunc> Node::asMpiFunc(const vector<list<int> > &indices) {
+    vector<MpiFunc> result;
     for (int pid = 0; pid < getNumProcs(); pid++) {
         for (auto idx : indices[pid]) {
             CB op = CB(pid, idx);
-            if (getTransition(op).getEnvelope().isWaitorTestType()) {
-                blist.push_back(op);
-            }
+            result.push_back(MpiFunc(op, getTransition(op).getEnvelope()));
+        }
+    }
+}
+
+void Node::addWaitorTestAmple(const vector<MpiFunc> &funcs) {
+    list <CB> blist;
+    for (auto func : funcs) {
+        if (func.envelope.isWaitorTestType()) {
+            blist.push_back(func.handle);
         }
     }
     if (blist.size() > 0) {
@@ -175,16 +183,13 @@ void Node::addWaitorTestAmple(const vector<list<int> > &indices) {
     }
 }
 
-bool Node::addCollectiveAmple(const vector <list <int> > &indices, int collective) {
+bool Node::addCollectiveAmple(const vector<MpiFunc> &funcs, int collective) {
     list <CB> blist;
     list <CB> flist;
 
-    for (int pid = 0; pid < getNumProcs(); pid++) {
-        for (auto idx : indices[pid]) {
-            CB op = CB(pid, idx);
-            if (getTransition(op).getEnvelope ().func_id == collective) {
-                blist.push_back (op);
-            }
+    for (auto func : funcs) {
+        if (func.envelope.func_id == collective) {
+            blist.push_back(func.handle);
         }
     }
 
@@ -261,21 +266,17 @@ bool Node::addCollectiveAmple(const vector <list <int> > &indices, int collectiv
     return false;
 }
 
-bool Node::addNonWildcardReceive(const vector <list <int> > &indices) {
-    for (int pid = 0; pid < getNumProcs(); pid++) {
-        for (auto idx : indices[pid]) {
-            CB op = CB(pid, idx);
-            auto e = getTransition(op).getEnvelope();
-            if (e.isRecvType()) {
-                if (e.src != WILDCARD) {
-                    auto snd = getMatchingSend(indices, op);
-                    if(snd) {
-                        list <CB> ml;
-                        ml.push_back(snd.get());
-                        ml.push_back(op);
-                        ample_set.push_back(ml);
-                        return true;
-                    }
+bool Node::addNonWildcardReceive(const vector<MpiFunc> &funcs) {
+    for (auto func : funcs) {
+        if (func.envelope.isRecvType()) {
+            if (func.envelope.src != WILDCARD) {
+                auto snd = getMatchingSend(indices, op);
+                if(snd) {
+                    list <CB> ml;
+                    ml.push_back(snd.get());
+                    ml.push_back(op);
+                    ample_set.push_back(ml);
+                    return true;
                 }
             }
         }
