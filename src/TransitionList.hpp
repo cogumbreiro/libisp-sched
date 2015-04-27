@@ -44,9 +44,7 @@ class TransitionList {
 public:
     inline int getId() const { return id; }
     inline unsigned int size() const { return tlist.size(); }
-    inline const Transition & get(int index) const {
-        return *tlist[index];
-    }
+    inline Transition & get(int index) const { return *tlist[index]; }
     bool addTransition (unique_ptr<Transition> t);
 
     inline indirect_iterator<vector<unique_ptr<Transition> >::iterator> begin () {
@@ -64,7 +62,6 @@ public:
     inline indirect_iterator<vector<unique_ptr<Transition> >::reverse_iterator> rend () {
         return make_indirect_iterator(tlist.rend());
     }
-
 
 private:
     std::vector<std::unique_ptr<Transition> > tlist;
