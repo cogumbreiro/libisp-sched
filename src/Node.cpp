@@ -161,17 +161,17 @@ bool Node::anyAncestorMatched(const CB handle, const vector<int> &ops) const {
     return result;
 }
 
-vector<MpiFunc> Node::asMpiFunc(const vector<list<int> > &indices) {
-    vector<MpiFunc> result;
+vector<MPIFunc> Node::asMPIFunc(const vector<list<int> > &indices) {
+    vector<MPIFunc> result;
     for (int pid = 0; pid < getNumProcs(); pid++) {
         for (auto idx : indices[pid]) {
             CB op = CB(pid, idx);
-            result.push_back(MpiFunc(op, getTransition(op).getEnvelope()));
+            result.push_back(MPIFunc(op, getTransition(op).getEnvelope()));
         }
     }
 }
 
-void Node::addWaitorTestAmple(const vector<MpiFunc> &funcs) {
+void Node::addWaitorTestAmple(const vector<MPIFunc> &funcs) {
     list <CB> blist;
     for (auto func : funcs) {
         if (func.envelope.isWaitorTestType()) {
@@ -183,7 +183,7 @@ void Node::addWaitorTestAmple(const vector<MpiFunc> &funcs) {
     }
 }
 
-bool Node::addCollectiveAmple(const vector<MpiFunc> &funcs, int collective) {
+bool Node::addCollectiveAmple(const vector<MPIFunc> &funcs, int collective) {
     list <CB> blist;
     list <CB> flist;
 
@@ -266,15 +266,30 @@ bool Node::addCollectiveAmple(const vector<MpiFunc> &funcs, int collective) {
     return false;
 }
 
-bool Node::addNonWildcardReceive(const vector<MpiFunc> &funcs) {
-    for (auto func : funcs) {
-        if (func.envelope.isRecvType()) {
-            if (func.envelope.src != WILDCARD) {
-                auto snd = getMatchingSend(indices, op);
+static optional<CB> getMatchingSend(const vector<MPIFunc> &funcs, MPIFunc recv) {
+    optional<CB> result;
+    /* The use of reverse_iterator here is necessary to preserve program-order
+     * matching - This is based on the fact that GetEnabledTransistions also
+     * uses a reverse iterator
+     */
+    for (auto snd : reverse(funcs)) {
+        if (snd.canSend(recv)) {
+            result.reset(snd.handle);
+            return result;
+        }
+    }
+    return result;
+}
+
+bool Node::addNonWildcardReceive(const vector<MPIFunc> &funcs) {
+    for (auto recv : funcs) {
+        if (recv.envelope.isRecvType()) {
+            if (recv.envelope.src != WILDCARD) {
+                auto snd = getMatchingSend(funcs, recv);
                 if(snd) {
                     list <CB> ml;
                     ml.push_back(snd.get());
-                    ml.push_back(op);
+                    ml.push_back(recv.handle);
                     ample_set.push_back(ml);
                     return true;
                 }
@@ -284,57 +299,19 @@ bool Node::addNonWildcardReceive(const vector<MpiFunc> &funcs) {
     return false;
 }
 
-/* The use of reverse_iterator here is necessary to preserve program-order
- * matching - This is based on the fact that GetEnabledTransistions also
- * uses a reverse iterator */
- optional<CB> Node::getMatchingSend(const vector <list <int> > &indices, const CB recv) {
-    optional<CB> result;
-    auto recv_env = getTransition(recv).getEnvelope();
-    for (auto index : indices[recv_env.src]) {
-        CB snd = CB(recv_env.src, index);
-        auto snd_env = getTransition(snd).getEnvelope();
-        if (snd_env.canSend(recv_env)) {
-            // XXX: in the original we had:  && snd_env.dest == recv.pid
-            assert (recv.pid == recv_env.src);
-            result.reset(snd);
-        }
-    }
-    return result;
-}
-
-bool Node::getAllMatchingSends (vector <list <int> > &l, CB &c,
+bool Node::getAllMatchingSends (const vector<MPIFunc> &funcs, MPIFunc &recv,
                                 vector <list <CB> >& ms) {
-    list <int>::reverse_iterator iter;
-    list <int>::reverse_iterator iter_end;
-    Envelope *e;
-    Envelope *c_env = getTransition(c)->getEnvelope();
-    bool found_ample = false;
-    std::set<CB> *sends = &itree->matched_sends[c];
-
-    for (int i = 0; i < NumProcs (); i++) {
-
-        iter_end = l[i].rend();
-        for (iter = l[i].rbegin (); iter != iter_end; iter++) {
-            e = getTransition(i, *iter)->getEnvelope();
-
-            if (e->isSendType () &&
-                    e->dest == c._pid &&
-                    e->comm == c_env->comm &&
-                    (e->stag == c_env->rtag || c_env->rtag == WILDCARD) && (
-#ifdef CONFIG_OPTIONAL_AMPLE_SET_FIX
-                    Scheduler::_no_ample_set_fix ? true :
-#endif
-                          (sends->find(CB(i, *iter)) == sends->end()))) {
-                list <CB> ml;
-                ml.push_back (CB(i, *iter));
-                ml.push_back (c);
-                ms.push_back (ml);
-                found_ample = true;
-                break;
-            }
+    auto & sends = findMatchedSends(c);
+    for (auto send : reverse(funcs)) {
+        if (recv.canSend(send) && (sends->find(send) == sends->end())) {
+            list <CB> ml;
+            ml.push_back(send);
+            ml.push_back(recv);
+            ms.push_back(ml);
+            return true;
         }
     }
-    return found_ample;
+    return false;
 }
 
 void Node::getallSends (vector <list <int> > &l) {

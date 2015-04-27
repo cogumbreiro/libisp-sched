@@ -44,10 +44,15 @@ enum NTYPE {
     DEADLOCK_NODE
 };
 
-struct MpiFunc {
-    MpiFunc(CB h, Envelope & e) : handle(h), envelope(e) {}
+struct MPIFunc {
+    MPIFunc(CB h, Envelope & e) : handle(h), envelope(e) {}
     CB handle;
     Envelope & envelope;
+
+    inline bool canSend(MPIFunc & recv) {
+        return handle.pid == recv.envelope.src &&
+                envelope.canSend(recv.envelope);
+    }
 };
 
 class Node {
@@ -75,10 +80,9 @@ public:
     bool allAncestorsMatched (const CB c, const vector<int> &l) const;
     bool anyAncestorMatched (const CB c, const vector<int> &l) const;
     vector <list<int> > createEnabledTransitions() const;
-    bool addCollectiveAmple (const vector <list <int> > &l, int collective);
-    void addWaitorTestAmple(const vector<MpiFunc> &funcs);
-    bool addNonWildcardReceive(const vector <list <int> > &l);
-    optional<CB> getMatchingSend (const vector <list <int> > &l, CB c);
+    bool addCollectiveAmple (const vector<MPIFunc> &funcs, int collective);
+    void addWaitorTestAmple(const vector<MPIFunc> &funcs);
+    bool addNonWildcardReceive(const vector<MPIFunc> &funcs);
     bool getAllMatchingSends (vector <list <int> > &l, CB &c,
                 vector <list <CB> > &);
     void getallSends (vector <list <int> > &l);
@@ -111,7 +115,7 @@ private:
     inline const Transition & getTransition(int pid, int op_index) const {
         return _tlist[pid]->get(op_index);
     }
-    vector<MpiFunc> asMpiFunc(const vector<list<int> > &indices);
+    vector<MPIFunc> asMPIFunc(const vector<list<int> > &indices);
 };
 
 #endif
