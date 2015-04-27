@@ -35,18 +35,6 @@ Node::Node (int num_procs) : has_child (false), _level(0),
     }
 }
 */
-/*
-void Node::deepCopy() {
-    int i;
-    vector <TransitionList*> tlist;
-    for(i=0; i<_num_procs; i++) {
-        TransitionList *tl = new TransitionList(*(this->_tlist[i]));
-        tlist.push_back(tl);
-    }
-    _tlist = tlist;
-    tlist_dealloc = true;
-}
-*/
 
 int Node::getTotalMpiCalls() const {
     int sum = 0;
@@ -56,6 +44,7 @@ int Node::getTotalMpiCalls() const {
     return sum;
 }
 
+// XXX: bundle with createEnabledTransitions
 bool Node::allAncestorsMatched (const CB handle, const vector <int> &indices) const {
     bool is_wait_or_test_type = getTransition(handle).getEnvelope().isWaitorTestType();
     auto pid = handle.pid;
@@ -92,6 +81,7 @@ bool Node::allAncestorsMatched (const CB handle, const vector <int> &indices) co
     return true;
 }
 
+// XXX: bundle with createEnabledTransitions
 bool Node::anyAncestorMatched(const CB handle, const vector<int> &ops) const {
     bool any_match = false;
 
@@ -123,6 +113,7 @@ bool Node::anyAncestorMatched(const CB handle, const vector<int> &ops) const {
     return true;
 }
 
+// XXX: bundle with createEnabledTransitions
 vector<MPIFunc> Node::asMPIFunc(const vector<list<int> > &indices) const {
     vector<MPIFunc> result;
     for (int pid = 0; pid < getNumProcs(); pid++) {
@@ -171,6 +162,7 @@ vector<MPIFunc> Node::createEnabledTransitions() const {
     return asMPIFunc(result);
 }
 
+// XXX: move out of here
 void Node::addWaitorTestAmple(const vector<MPIFunc> &funcs) {
     list <CB> blist;
     for (auto func : funcs) {
@@ -183,38 +175,46 @@ void Node::addWaitorTestAmple(const vector<MPIFunc> &funcs) {
     }
 }
 
+// XXX: move out of here
+static list<CB> asHandles(const vector<MPIFunc> &funcs) {
+    list<CB> result;
+    for (auto func : funcs) {
+        result.push_back(func.handle);
+    }
+    return result;
+}
+
+// XXX: move out of here
 bool Node::addCollectiveAmple(const vector<MPIFunc> &funcs, int collective) {
-    list <CB> blist;
-    list <CB> flist;
+    vector<MPIFunc> blist;
+    vector<MPIFunc> flist;
 
     for (auto func : funcs) {
         if (func.envelope.func_id == collective) {
-            blist.push_back(func.handle);
+            blist.push_back(func);
         }
     }
 
     if (collective == FINALIZE) {
-        if ((int)blist.size () == getNumProcs()) {
-            ample_set.push_back(blist);
+        if ((int)blist.size() == getNumProcs()) {
+            ample_set.push_back(asHandles(blist));
             return true;
         }
         return false;
     }
 
-    for (auto op1 : blist) {
-        auto e1 = getTransition(op1).getEnvelope ();
-        for (auto op2 : blist) {
-            if (getTransition(op2).getEnvelope().comm == e1.comm) {
-                flist.push_back(op2);
+    for (auto func1 : blist) {
+        for (auto func2 : blist) {
+            if (func2.envelope.comm == func1.envelope.comm) {
+                flist.push_back(func2);
             }
         }
         if ((collective == BCAST || collective == GATHER ||
              collective == SCATTER || collective == SCATTERV ||
              collective == GATHERV || collective == REDUCE) && flist.size() > 0) {
-            int root =
-                getTransition(*flist.begin()).getEnvelope().count;
-            for (auto op2 : flist) {
-                int other_root = getTransition(op2).getEnvelope().count;
+            int root = (*flist.begin()).envelope.count;
+            for (auto func2 : flist) {
+                int other_root = func2.envelope.count;
                 if (root != other_root) {
                     flist.clear ();
                     return false;
@@ -230,8 +230,8 @@ bool Node::addCollectiveAmple(const vector<MPIFunc> &funcs, int collective) {
                 std::map<int, int> colorcount;
 
                 /* Mark which colors are being used in the map. */
-                for (auto op2 : flist) {
-                    colorcount[getTransition(op2).getEnvelope().comm_split_color] = 1;
+                for (auto func2 : flist) {
+                    colorcount[func2.envelope.comm_split_color] = 1;
                 }
 
                 /* Assign comm_id's to all of the new communicators. */
@@ -240,19 +240,19 @@ bool Node::addCollectiveAmple(const vector<MPIFunc> &funcs, int collective) {
                 }
 
                 /* Put the new IDs in the envelopes. */
-                for (auto op2 : flist) {
-                    auto e = getTransition(op2).getEnvelope();
+                for (auto func2 : flist) {
+                    auto e = func2.envelope;
                     e.comm_id = colorcount[e.comm_split_color];
                 }
             } else {
                 int id = comm_id++;
-                for (auto op2 : flist) {
-                    getTransition(op2).getEnvelope().comm_id = id;
+                for (auto func2 : flist) {
+                    func2.envelope.comm_id = id;
                 }
             }
         }
 
-        if ((int)flist.size () == e1.nprocs) {
+        if ((int)flist.size() == func1.envelope.nprocs) {
             break;
         } else {
             flist.clear ();
@@ -260,7 +260,7 @@ bool Node::addCollectiveAmple(const vector<MPIFunc> &funcs, int collective) {
     }
 
     if (flist.size() > 0) {
-        ample_set.push_back(flist);
+        ample_set.push_back(asHandles(flist));
         return true;
     }
     return false;
@@ -338,6 +338,7 @@ void Node::addReceiveAmple(const vector<MPIFunc> &funcs) {
     addAllSends(funcs);
 }
 
+// XXX: move out of here
 bool Node::createAmpleSet() {
     if (ample_set.size() > 0) {
         return true;
