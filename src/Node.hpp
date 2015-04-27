@@ -62,10 +62,10 @@ public:
     }
     int getTotalMpiCalls() const;
     bool allAncestorsMatched (const CB c, const std::vector<int> &l) const;
-    bool anyAncestorMatched (const CB c, std::vector<int> &l) const;
-    void getEnabledTransitions(std::vector <std::list <int> >&);
-    bool getCollectiveAmple (std::vector <std::list <int> > &l, int collective);
-    void getWaitorTestAmple (std::vector <std::list <int> > &l);
+    bool anyAncestorMatched (const CB c, const std::vector<int> &l) const;
+    std::vector <std::list<int> > getEnabledTransitions() const;
+    bool getCollectiveAmple (const std::vector <std::list <int> > &l, int collective);
+    void getWaitorTestAmple (const std::vector <std::list <int> > &l);
     bool getNonWildcardReceive (std::vector <std::list <int> > &l);
     bool getMatchingSend (CB &res, std::vector <std::list <int> > &l, CB &c);
     bool getAllMatchingSends (std::vector <std::list <int> > &l, CB &c,

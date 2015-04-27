@@ -14,8 +14,11 @@
 #include <map>
 #include <queue>
 #include <string.h>
+#include <boost/range/adaptor/reversed.hpp>
 
 #include "Node.hpp"
+
+using boost::adaptors::reverse;
 
 /*
 Node::Node (int num_procs) : has_child (false), _level(0),
@@ -54,7 +57,7 @@ int Node::getTotalMpiCalls() const {
 bool Node::allAncestorsMatched (const CB handle, const std::vector <int> &indices) const {
     bool is_wait_or_test_type = getTransition(handle).getEnvelope().isWaitorTestType();
     auto pid = handle.pid;
-    auto pid_transitions = _tlist[pid];
+    auto & pid_transitions = _tlist[pid];
     for (auto curr : indices) {
         auto curr_handle = CB(pid, curr);
         auto & curr_trans = getTransition(curr_handle);
@@ -87,7 +90,7 @@ bool Node::allAncestorsMatched (const CB handle, const std::vector <int> &indice
     return true;
 }
 
-bool Node::anyAncestorMatched(const CB handle, std::vector<int> &ops) const {
+bool Node::anyAncestorMatched(const CB handle, const std::vector<int> &ops) const {
     bool any_match = false;
 
     auto env = getTransition(handle).getEnvelope ();
@@ -95,7 +98,7 @@ bool Node::anyAncestorMatched(const CB handle, std::vector<int> &ops) const {
     if (is_wait_or_test_type && ops.size() == 0) {
         return true;
     }
-
+    std::vector<int> filtered = ops;
     for (auto op : env.req_procs) {
         auto req = CB(handle.pid, op);
         if (matcher.isMatched(req) ||
@@ -103,12 +106,12 @@ bool Node::anyAncestorMatched(const CB handle, std::vector<int> &ops) const {
                     getTransition(req).getEnvelope().func_id == ISEND)) {
             any_match = true;
         }
-        ops.erase(std::remove(ops.begin(), ops.end(), op), ops.end());
+        filtered.erase(std::remove(filtered.begin(), filtered.end(), op), filtered.end());
     }
     if (!any_match) {
         return false;
     }
-    for (auto id : ops) {
+    for (auto id : filtered) {
         auto op = CB(handle.pid, id);
         if(!matcher.isMatched(op)) {
             return false;
@@ -125,59 +128,53 @@ bool Node::anyAncestorMatched(const CB handle, std::vector<int> &ops) const {
  * transition - If we stop using reverse iterator - we need to stop using
  * reverse iterator in GetMatchingSends as well - otherwise we won't
  * be able to preserve the program order matching of receives/sends */
-void Node::getEnabledTransitions (std::vector <std::list <int> > &l) {
-    l.clear ();
+ std::vector <std::list<int> > Node::getEnabledTransitions() const {
+    std::vector <std::list <int> > result;
 
     for (int i = 0; i < getNumProcs(); i++) {
-        l.push_back (std::list <int> ());
+        result.push_back (std::list<int>());
     }
 
-    for (int i = 0 ; i < getNumProcs () ;i++) {
-        CB c(i,0);
-        auto all = _tlist[i];
-        auto iter = all->_tlist.rbegin();
-        auto iter_end = all->_tlist.rend();
-        int j = all.size() - 1;
-        for (; iter != iter_end; iter++) {
-            c.index = j;
-            if (!matcher.isMatched(c)) {
-                std::vector<int> &ancestor_list(getTransition(c)->getAncestors());
-                const auto func_name = iter->getEnvelope ()->func_id;
+    for (int pid = 0 ; pid < getNumProcs(); pid++) {
+        int op = _tlist[pid]->size() - 1;
+        for (Transition & trans : *_tlist[pid]) {
+            CB h(pid,op);
+            if (!matcher.isMatched(h)) {
+                std::vector<int> ancestors(getTransition(h).getAncestors());
+                const auto func_name = trans.getEnvelope().func_id;
                 if ((func_name != WAITANY && func_name != TESTANY) &&
-                        allAncestorsMatched(c,ancestor_list)) {
-                    l[i].push_back (j);
+                        allAncestorsMatched(h, ancestors)) {
+                    result[pid].push_back(op);
                 } else if ((func_name == WAITANY || func_name == TESTANY) &&
-                        anyAncestorMatched(c,ancestor_list)) {
-                    l[i].push_back (j);
+                        anyAncestorMatched(h, ancestors)) {
+                    result[pid].push_back(op);
                 }
             }
-            j--;
-            if (j <= matcher->findLastMatched(i)) {
+            op--;
+            if (op <= matcher.findLastMatched(pid)) {
                 break;
             }
         }
     }
-
+    return result;
 }
 
-void Node::getWaitorTestAmple (std::vector <std::list <int> > &l) {
+void Node::getWaitorTestAmple(const std::vector <std::list <int> > &l) {
     std::list <CB> blist;
-    for (int i = 0; i < NumProcs (); i++) {
+    for (int i = 0; i < getNumProcs(); i++) {
         std::list <int>::iterator iter;
         std::list <int>::iterator iter_end;
         Envelope *e;
         iter_end = l[i].end();
-        for (iter = l[i].begin (); iter != iter_end; iter++) {
-            e = getTransition(i, (*iter))->getEnvelope();
-
-            if (e->isWaitorTestType ()) {
-                blist.push_back (CB(i, *iter));
+        for (auto idx : l[i]) {
+            CB op = (i, idx);
+            if (getTransition(op)->getEnvelope()->isWaitorTestType()) {
+                blist.push_back(op);
             }
         }
     }
-    if (!blist.empty ()) {
-        ample_set.push_back (blist);
-
+    if (blist.size() > 0) {
+        ample_set.push_back(blist);
     }
 }
 
