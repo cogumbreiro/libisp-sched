@@ -28,12 +28,14 @@
 #include <iterator>
 #include <list>
 #include <cassert>
+#include <boost/optional.hpp>
 
 #include "TransitionList.hpp"
 #include "Matcher.hpp"
 
 using std::vector;
 using std::list;
+using boost::optional;
 
 enum NTYPE {
     GENERAL_NODE,
@@ -69,8 +71,8 @@ public:
     vector <list<int> > createEnabledTransitions() const;
     bool addCollectiveAmple (const vector <list <int> > &l, int collective);
     void addWaitorTestAmple(const vector <list <int> > &l);
-    bool getNonWildcardReceive (vector <list <int> > &l);
-    bool getMatchingSend (CB &res, vector <list <int> > &l, CB &c);
+    bool addNonWildcardReceive(const vector <list <int> > &l);
+    optional<CB> getMatchingSend (const vector <list <int> > &l, CB c);
     bool getAllMatchingSends (vector <list <int> > &l, CB &c,
                 vector <list <CB> > &);
     void getallSends (vector <list <int> > &l);

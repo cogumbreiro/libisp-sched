@@ -261,23 +261,19 @@ bool Node::addCollectiveAmple(const vector <list <int> > &indices, int collectiv
     return false;
 }
 
-bool Node::getNonWildcardReceive (vector <list <int> > &l) {
-    for (int i = 0; i < NumProcs (); i++) {
-        list <int>::iterator iter;
-        list <int>::iterator iter_end;
-
-        iter_end= l[i].end();
-        for (iter = l[i].begin (); iter != iter_end; iter++) {
-
-            if (getTransition (i, *iter)->getEnvelope ()->isRecvType ()) {
-                if (getTransition (i, *iter)->getEnvelope ()->src != WILDCARD) {
-                    CB tempCB(i, *iter);
-                    CB c1;
-                    if(getMatchingSend (c1, l, tempCB)) {
+bool Node::addNonWildcardReceive(const vector <list <int> > &indices) {
+    for (int pid = 0; pid < getNumProcs(); pid++) {
+        for (auto idx : indices[pid]) {
+            CB op = CB(pid, idx);
+            auto e = getTransition(op).getEnvelope();
+            if (e.isRecvType()) {
+                if (e.src != WILDCARD) {
+                    auto snd = getMatchingSend(indices, op);
+                    if(snd) {
                         list <CB> ml;
-                        ml.push_back (c1);
-                        ml.push_back (CB(i, *iter));
-                        ample_set.push_back (ml);
+                        ml.push_back(snd.get());
+                        ml.push_back(op);
+                        ample_set.push_back(ml);
                         return true;
                     }
                 }
@@ -290,25 +286,19 @@ bool Node::getNonWildcardReceive (vector <list <int> > &l) {
 /* The use of reverse_iterator here is necessary to preserve program-order
  * matching - This is based on the fact that GetEnabledTransistions also
  * uses a reverse iterator */
-bool Node::getMatchingSend (CB &res, vector <list <int> > &l, CB &c) {
-    int src = getTransition(c)->getEnvelope ()->src;
-    list <int>::reverse_iterator iter;
-    list <int>::reverse_iterator iter_end = l[src].rend();
-    Envelope *e;
-    Envelope *c_env = getTransition(c)->getEnvelope();
-    for (iter = l[src].rbegin (); iter != iter_end; iter++) {
-        e = getTransition(src, (*iter))->getEnvelope();
-
-        if (e->isSendType () &&
-            e->dest == c._pid &&
-            e->comm == c_env->comm &&
-            (e->stag == c_env->rtag || c_env->rtag == WILDCARD)) {
-            res._pid = src;
-            res._index = *iter;
-            return true;
+ optional<CB> Node::getMatchingSend(const vector <list <int> > &indices, const CB recv) {
+    optional<CB> result;
+    auto recv_env = getTransition(recv).getEnvelope();
+    for (auto index : indices[src]) {
+        CB snd = CB(recv_env.src, index);
+        auto snd_env = getTransition(snd).getEnvelope();
+        if (snd_env.canSend(recv_env)) {
+            // XXX: in the original we had:  && snd_env.dest == recv.pid
+            assert (recv.pid == recv_env.src);
+            result.reset(snd);
         }
     }
-    return false;
+    return result;
 }
 
 bool Node::getAllMatchingSends (vector <list <int> > &l, CB &c,
