@@ -175,66 +175,43 @@ void Node::addWaitorTestAmple(const vector<list<int> > &indices) {
     }
 }
 
-bool Node::getCollectiveAmple (vector <list <int> > &l, int collective) {
+bool Node::addCollectiveAmple(const vector <list <int> > &indices, int collective) {
     list <CB> blist;
     list <CB> flist;
 
-    for (int i = 0; i < NumProcs (); i++) {
-        list <int>::iterator iter;
-        list <int>::iterator iter_end;
-
-        iter_end = l[i].end();
-        for (iter = l[i].begin (); iter != iter_end; iter++) {
-            if (getTransition (i, *iter)->getEnvelope ()->func_id == collective) {
-                blist.push_back (CB(i, *iter));
+    for (int pid = 0; pid < getNumProcs(); pid++) {
+        for (auto idx : indices[pid]) {
+            CB op = CB(pid, idx);
+            if (getTransition(op).getEnvelope ().func_id == collective) {
+                blist.push_back (op);
             }
         }
     }
 
     if (collective == FINALIZE) {
-        if ((int)blist.size () == NumProcs ()) {
-            ample_set.push_back (blist);
+        if ((int)blist.size () == getNumProcs()) {
+            ample_set.push_back(blist);
             return true;
         }
         return false;
     }
 
-    Envelope *e1;
-    Envelope *e2;
-    list <CB>::iterator iter1;
-    int nprocs;
-    std::string comm;
-    list <CB>::iterator iter_end;
-    list <CB>::iterator iter;
-    list <CB>::iterator iter3;
-
-    iter_end = blist.end();
-
-    for (iter = blist.begin (); iter != iter_end; iter++) {
-        e1 = getTransition (*iter)->getEnvelope ();
-        nprocs = e1->nprocs;
-        comm = e1->comm;
-        for (iter1 = blist.begin (); iter1 != iter_end; iter1++) {
-            e2 = getTransition (*iter1)->getEnvelope ();
-            if (e2->comm == e1->comm) {
-                flist.push_back (CB(*iter1));
+    for (auto op1 : blist) {
+        auto e1 = getTransition(op1).getEnvelope ();
+        for (auto op2 : blist) {
+            if (getTransition(op2).getEnvelope().comm == e1.comm) {
+                flist.push_back(op2);
             }
         }
         if ((collective == BCAST || collective == GATHER ||
              collective == SCATTER || collective == SCATTERV ||
-             collective == GATHERV || collective == REDUCE) && !flist.empty()) {
-            list <CB>::iterator iter;
-            list <CB>::iterator iter_end2 = flist.end();
-
+             collective == GATHERV || collective == REDUCE) && flist.size() > 0) {
             int root =
-                getTransition (*flist.begin())->getEnvelope ()->count;
-            for (iter = flist.begin (); iter != iter_end2; iter++) {
-                int root1 = getTransition (*iter)->getEnvelope ()->count;
-
-                if (root != root1) {
-                    //FreeMemory(flist);
+                getTransition(*flist.begin()).getEnvelope().count;
+            for (auto op2 : flist) {
+                int other_root = getTransition(op2).getEnvelope().count;
+                if (root != other_root) {
                     flist.clear ();
-                    //FreeMemory(blist);
                     return false;
                 }
             }
@@ -248,44 +225,37 @@ bool Node::getCollectiveAmple (vector <list <int> > &l, int collective) {
                 std::map<int, int> colorcount;
 
                 /* Mark which colors are being used in the map. */
-                list <CB>::iterator iter;
-                list <CB>::iterator iter_end2 = flist.end();
-                for (iter = flist.begin (); iter != iter_end2; iter++) {
-                    colorcount[getTransition (*iter)->getEnvelope ()->comm_split_color] = 1;
+                for (auto op2 : flist) {
+                    colorcount[getTransition(op2).getEnvelope().comm_split_color] = 1;
                 }
 
                 /* Assign comm_id's to all of the new communicators. */
-                std::map <int, int>::iterator iter_map;
-                std::map <int, int>::iterator iter_map_end = colorcount.end();
-                for (iter_map = colorcount.begin (); iter_map != iter_map_end; iter_map++) {
-                    iter_map->second = comm_id++;
+                for (auto kv : colorcount) {
+                    kv.second = comm_id++;
                 }
 
                 /* Put the new IDs in the envelopes. */
-                for (iter = flist.begin (); iter != iter_end2; iter++) {
-                    Envelope *e = getTransition (*iter)->getEnvelope ();
-                    e->comm_id = colorcount[e->comm_split_color];
+                for (auto op2 : flist) {
+                    auto e = getTransition(op2).getEnvelope();
+                    e.comm_id = colorcount[e.comm_split_color];
                 }
             } else {
                 int id = comm_id++;
-
-                list <CB>::iterator iter;
-                list <CB>::iterator iter_end2 = flist.end();
-                for (iter = flist.begin (); iter != iter_end2; iter++) {
-                    getTransition(*iter)->getEnvelope()->comm_id = id;
+                for (auto op2 : flist) {
+                    getTransition(op2).getEnvelope().comm_id = id;
                 }
             }
         }
 
-        if ((int)flist.size () == nprocs) {
+        if ((int)flist.size () == e1.nprocs) {
             break;
         } else {
             flist.clear ();
         }
     }
 
-    if (! flist.empty ()) {
-        ample_set.push_back (flist);
+    if (flist.size() > 0) {
+        ample_set.push_back(flist);
         return true;
     }
     return false;
