@@ -129,7 +129,7 @@ bool Node::anyAncestorMatched(const CB handle, const vector<int> &ops) const {
  * transition - If we stop using reverse iterator - we need to stop using
  * reverse iterator in GetMatchingSends as well - otherwise we won't
  * be able to preserve the program order matching of receives/sends */
- vector <list<int> > Node::getEnabledTransitions() const {
+ vector <list<int> > Node::createEnabledTransitions() const {
     vector <list <int> > result;
 
     for (int i = 0; i < getNumProcs(); i++) {
@@ -160,16 +160,12 @@ bool Node::anyAncestorMatched(const CB handle, const vector<int> &ops) const {
     return result;
 }
 
-vector <list <int> > Node::getWaitorTestAmple() {
+void Node::addWaitorTestAmple(const vector<list<int> > &indices) {
     list <CB> blist;
-    for (int i = 0; i < getNumProcs(); i++) {
-        list <int>::iterator iter;
-        list <int>::iterator iter_end;
-        Envelope *e;
-        iter_end = l[i].end();
-        for (auto idx : l[i]) {
-            CB op = (i, idx);
-            if (getTransition(op)->getEnvelope()->isWaitorTestType()) {
+    for (int pid = 0; pid < getNumProcs(); pid++) {
+        for (auto idx : indices[pid]) {
+            CB op = CB(pid, idx);
+            if (getTransition(op).getEnvelope().isWaitorTestType()) {
                 blist.push_back(op);
             }
         }

@@ -68,7 +68,7 @@ public:
     bool anyAncestorMatched (const CB c, const vector<int> &l) const;
     vector <list<int> > createEnabledTransitions() const;
     bool getCollectiveAmple (const vector <list <int> > &l, int collective);
-    void getWaitorTestAmple (const vector <list <int> > &l);
+    void addWaitorTestAmple(const vector <list <int> > &l);
     bool getNonWildcardReceive (vector <list <int> > &l);
     bool getMatchingSend (CB &res, vector <list <int> > &l, CB &c);
     bool getAllMatchingSends (vector <list <int> > &l, CB &c,
