@@ -25,7 +25,7 @@
 #include <list>
 #include <algorithm>
 #include <sstream>
-#include <memory> 
+#include <memory>
 
 #include "Envelope.hpp"
 #include "Transition.hpp"
@@ -38,17 +38,15 @@ class TransitionList {
 public:
     inline int getId() const { return id; }
     inline unsigned int size() const { return tlist.size(); }
-
+    inline const Transition & get(int index) const {
+        return *tlist[index];
+    }
     bool addTransition (std::unique_ptr<Transition> t);
-
+        
 private:
-    std::vector <std::unique_ptr<Transition> > tlist;
-    std::list <int> ulist;
-    /*
-    std::stringstream _leaks_string;
-    int _leaks_count;
-    int last_matched;*/
-    int  id;
+    std::vector<std::unique_ptr<Transition> > tlist;
+    std::list<int> ulist;
+    int id;
     inline bool intraCB (const Transition &f, const Transition &s) const {
         const auto &env_f = f.getEnvelope();
         const auto &env_s = s.getEnvelope();
@@ -108,7 +106,7 @@ private:
                 (env_s.func_id == TESTALL) ) &&
                 (env_f.func_id == IRECV ||
                  env_f.func_id == ISEND)) {
-       
+
             for (int i = 0 ; i < env_s.count ; i++) {
                 if (env_s.req_procs[i] == env_f.index) {
                     return true;

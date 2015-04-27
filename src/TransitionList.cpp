@@ -20,75 +20,47 @@
 
 #include <iostream>
 #include <sstream>
+#include <boost/range/adaptor/reversed.hpp>
+#include <boost/range/adaptor/indirected.hpp>
 
 #include "TransitionList.hpp"
 
+using boost::adaptors::reverse;
+using boost::adaptors::indirect;
+
 bool TransitionList::addTransition(std::unique_ptr<Transition> t) {
-    int index = t->getEnvelope().index;
-    int msize = (int) tlist.size();
-
-    if (index <= msize-1) {
-        if (t->getEnvelope() == tlist[index]->getEnvelope()) {
-            tlist[index]->getEnvelope().issue_id = -1;
-            //XXX: t->t = _tlist[index].t;
-            return true;
-        }
-        return false;
+    auto & env_t = t->getEnvelope();
+    const int index = env_t.index;
+    // check if already in the list
+    if (index <= size() - 1) {
+        // return true only when the envelopes match
+        return tlist[index]->getEnvelope() == env_t;
     }
-
+    // otherwise append to the list
     tlist.push_back(std::move(t));
     auto & trans = tlist.back();
-//    t = &_tlist.back();   // important! not a no-op
-    int size = (int) tlist.size ();
-    CB c(id, size-1);
+    const CB last_op(id, size()-1);
 
-    auto env_t = trans->getEnvelope();
-    //const Envelope &env_f;
     bool blocking_flag = false;
 
     if (env_t.func_id == ISEND || env_t.func_id == IRECV) {
         ulist.push_back (index);
     } else if (env_t.func_id == WAIT || env_t.func_id == WAITALL ||
                env_t.func_id == TEST || env_t.func_id == TESTALL) {
-        for (auto & req : env_t.req_procs) { 
-            if (tlist[req]->addIntraCB(c.copy())) {
+        for (auto & req : env_t.req_procs) {
+            if (tlist[req]->addIntraCB(last_op)) {
                 t->addAncestor(req);
             }
             ulist.remove(req);
         }
-        /*
-        std::vector<int>::iterator it = env_t->req_procs.begin ();
-        std::vector<int>::iterator it_end = env_t->req_procs.end ();
-        for (; it != it_end; it++) {
-            if (_tlist[*it].AddIntraCB(c)) {
-                t->mod_ancestors().push_back(*it);
-            }
-            _ulist.remove (*it);
-        }*/
     }
 
-    auto iter = tlist.rbegin() + 1;
-    auto iter_end = tlist.rend();
-
-    int i = size - 2;
-    for (; iter != iter_end; iter++) {
-        auto & curr = **iter;
+    int i = size() - 2;
+    for (auto & curr : reverse(indirect(tlist))) {
         if (intraCB(curr, *t)) {
-            if (!blocking_flag) {
-                if (curr.addIntraCB(c.copy())) {
-                    t->addAncestor(i);
-                }
-                
-                /* avo 06/11/08 - trying not to add redundant edges */
-                auto env_f = curr.getEnvelope();
-                
-                //a blocking call occured earlier
-                //to avoid unnecessary CB edges
-                if (env_f.isBlockingType()) {
-                    blocking_flag = true;
-                }
-            } else if (blocking_flag) {
-                if (env_t.func_id != SEND && (ulist.size() == 0 || index < ulist.front())) {
+            if (blocking_flag) {
+                if (env_t.func_id != SEND &&
+                        (ulist.size() == 0 || index < ulist.front())) {
                     return true;
                 }
                 //if a blocking call occured in the past
@@ -96,27 +68,34 @@ bool TransitionList::addTransition(std::unique_ptr<Transition> t) {
                 //Isend and Irecv
                 auto env_f = curr.getEnvelope();
                 if (env_f.func_id == IRECV) {
-                    if (curr.addIntraCB(c.copy())) {
+                    if (curr.addIntraCB(last_op)) {
                         t->addAncestor(i);
                     }
 
                     //terminate if this satisfies the Irecv intraCB rule
-                    if (env_t.isRecvType() &&
-                        env_f.src == env_t.src &&
-                        env_f.comm == env_t.comm &&
-                        env_f.rtag == env_t.rtag)
+                    if (env_t.matchRecv(env_f)) {
                         return true;
+                    }
                 } else if (env_f.func_id == ISEND) {
-                    if (curr.addIntraCB(c.copy())) {
+                    if (curr.addIntraCB(last_op)) {
                         t->addAncestor(i);
                     }
-                    
+
                     //terminate if this satisfies the Isend intraCB rule
-                    if (env_t.isSendType() &&
-                        env_f.dest == env_t.dest &&
-                        env_f.comm == env_t.comm &&
-                        env_f.stag == env_t.stag)
+                    if (env_t.matchSend(env_f)) {
                         return true;
+                    }
+                }
+            } else {
+                if (curr.addIntraCB(last_op)) {
+                    t->addAncestor(i);
+                }
+
+                /* avo 06/11/08 - trying not to add redundant edges */
+                //a blocking call occured earlier
+                //to avoid unnecessary CB edges
+                if (curr.getEnvelope().isBlockingType()) {
+                    blocking_flag = true;
                 }
             }
         }
