@@ -55,7 +55,7 @@ public:
     bool				typesMatch;//CGD
     std::vector<int>    comm_list;
     std::vector<int>    req_procs;
- 
+
     int                 rtag;
     int                 nprocs;
     int                 comm_split_color;
@@ -79,7 +79,7 @@ public:
         return (func_id == IRECV || func_id == RECV ||
                 func_id == PROBE || func_id == IPROBE);
     }
-    
+
     inline bool isCollectiveType () const {
         return (func_id == BARRIER || func_id == BCAST || func_id == CART_CREATE
                 || func_id == COMM_CREATE || func_id == COMM_DUP
@@ -107,14 +107,27 @@ public:
                 );
     }
 
-
     bool operator==(const Envelope &) const;
     bool operator!=(const Envelope &) const;
     Envelope();
     Envelope(const Envelope &e);
+
+    inline bool matchRecv(const Envelope & other) const {
+        return isRecvType() &&
+            other.isRecvType() &&
+            src == other.src &&
+            comm == other.comm &&
+            rtag == other.rtag;
+    }
+
+    inline bool matchSend(const Envelope & other) const {
+        match isSendType() && isSendType() &&
+            dest == match.dest &&
+            comm == match.comm &&
+            stag == match.stag;
+    }
 };
 
 std::unique_ptr<Envelope> CreateEnvelope (const char *buffer, int id, int order_id, bool to_expl);
 
 #endif
-
