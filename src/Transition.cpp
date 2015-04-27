@@ -12,24 +12,22 @@
 
 #include "Transition.hpp"
 
-bool Transition::addIntraCB(std::unique_ptr<CB> c) {
-    if(isNew(*c)) {
-        intra_cb.push_back(std::move(c));
+bool Transition::addIntraCB(const CB handle) {
+    if(isNew(handle)) {
+        intra_cb.push_back(handle);
         return true;
     }
     return false;
 }
 
-bool Transition::addInterCB(std::unique_ptr<CB> c) {
-    if (c->_pid == -1 && c->_index == -1) {
-        inter_cb.push_back (std::move(c));
+bool Transition::addInterCB(const CB handle) {
+    if (handle.pid == -1 && handle.index == -1) {
+        inter_cb.push_back(handle);
         return false;
     }
-    if(isNew(*c)) {
-        inter_cb.push_back(std::move(c));
+    if(isNew(handle)) {
+        inter_cb.push_back(handle);
         return true;
     }
     return false;
 }
-
-

@@ -30,16 +30,15 @@
 class Transition {
 public:
     inline Envelope& getEnvelope () const {return *envelope;}
-    bool addIntraCB(std::unique_ptr<CB> c);
-    bool addInterCB(std::unique_ptr<CB> c);
-    //void moveCurrMatching();
+    bool addIntraCB(const CB c);
+    bool addInterCB(const CB c);
 
-    void setCurrMatching(std::unique_ptr<CB> c) {
-        curr_matching = std::move(c);
+    void setCurrMatching(CB c) {
+        curr_matching = c;
     }
 
-    const CB & getCurrMatching() const {
-        return *curr_matching;
+    const CB getCurrMatching() const {
+        return curr_matching;
     }
 
     inline const std::vector<int> &getAncestors() const {
@@ -49,20 +48,19 @@ public:
     void addAncestor(const int ancestor) {
         ancestors.push_back(ancestor);
     }
-    //std::vector<int> &mod_ancestors();
 
 private:
     std::vector<int> ancestors;
-    std::unique_ptr<CB> curr_matching;
+    CB curr_matching;
     std::unique_ptr<Envelope> envelope;
-    std::vector <std::unique_ptr<CB> > inter_cb;
-    std::vector <std::unique_ptr<CB> > intra_cb;
+    std::vector<CB> inter_cb;
+    std::vector<CB> intra_cb;
     /**
      * Tests if an element is in the vector.
      */
-    inline static bool vec_contains(const std::vector <std::unique_ptr<CB> > &vec, const CB &elem) {
-        for (auto & other : vec) {
-            if (*other == elem) {
+    inline static bool vec_contains(const std::vector <CB> &vec, const CB elem) {
+        for (auto other : vec) {
+            if (other == elem) {
                 return true;
             }
         }
@@ -71,10 +69,10 @@ private:
     /**
      * Tests whether the transition contains the given cb.
      */
-    inline bool isNew(const CB &c) const {
-        return !vec_contains(intra_cb, c)  && !vec_contains(inter_cb, c);
+    inline bool isNew(const CB &handle) const {
+        return !vec_contains(intra_cb, handle)  && !vec_contains(inter_cb, handle);
     }
 
 };
-  
+
 #endif
