@@ -7,7 +7,11 @@ project(libisp-sched)
 ###
 set(CPM_NO_UPDATE TRUE)
 include(cpm/CPM.cmake)
-CPM_AddModule("catch" GIT_REPOSITORY "https://github.com/bcachet/cpm-catch")    
+CPM_AddModule("catch" GIT_REPOSITORY "https://github.com/bcachet/cpm-catch")
+# find_package( Boost REQUIRED COMPONENTS iterator )
+CPM_AddModule("boost"
+    GIT_REPOSITORY "https://github.com/cogumbreiro/cpm-boost"
+    GIT_TAG "1.57.0")
 CPM_Finish()
 
 ##
@@ -20,12 +24,15 @@ ADD_DEFINITIONS(
 
 enable_testing()
 
-add_library(isp-sched 
+add_library(isp-sched
         src/CB.hpp
         src/name2id.cpp src/name2id.hpp
         src/Envelope.cpp src/Envelope.hpp
         src/Transition.cpp src/Transition.hpp
         src/TransitionList.cpp src/TransitionList.hpp
+        src/Matcher.hpp
+        src/Node.cpp src/Node.hpp
+        #src/InterleavingTree.cpp src/InterleavingTree.hpp
         )
 
 target_include_directories(isp-sched PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
@@ -36,4 +43,3 @@ add_test(test-cb test-cb)
 
 add_executable(test-tr src/TestTransition.cpp)
 add_test(test-tr test-tr)
-
