@@ -121,10 +121,10 @@ public:
     }
 
     inline bool matchSend(const Envelope & other) const {
-        match isSendType() && isSendType() &&
-            dest == match.dest &&
-            comm == match.comm &&
-            stag == match.stag;
+        return isSendType() && other.isSendType() &&
+            dest == other.dest &&
+            comm == other.comm &&
+            stag == other.stag;
     }
 };
 
