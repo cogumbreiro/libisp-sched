@@ -24,10 +24,11 @@
 #include "name2id.hpp"
 #include <iostream>
 #include <vector>
-#include <cassert>
-#ifdef WIN32
-#include <winsock2.h>
-#endif
+#include <memory>
+
+using std::string;
+using std::unique_ptr;
+
 #define WILDCARD (-1)
 
 class Envelope {
@@ -40,8 +41,8 @@ public:
     int                 id;
     int                 order_id;
     int                 issue_id;
-    std::string         func;
-    std::string         display_name;
+    string         func;
+    string         display_name;
     int                 func_id;
     int                 count;
     int                 index;
@@ -50,7 +51,7 @@ public:
     int                 src;
     bool                src_wildcard;
     int                 stag;
-    std::string         comm;
+    string         comm;
     int					data_type; //CGD
     bool				typesMatch;//CGD
     std::vector<int>    comm_list;
@@ -60,7 +61,7 @@ public:
     int                 nprocs;
     int                 comm_split_color;
     int                 comm_id;
-    std::string         filename;
+    string         filename;
     int                 linenumber;
     unsigned int        ref;
     bool in_exall;
@@ -135,6 +136,6 @@ public:
     }
 };
 
-std::unique_ptr<Envelope> CreateEnvelope (const char *buffer, int id, int order_id, bool to_expl);
+unique_ptr<Envelope> CreateEnvelope (const char *buffer, int id, int order_id, bool to_expl);
 
 #endif

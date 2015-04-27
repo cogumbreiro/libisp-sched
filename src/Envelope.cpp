@@ -25,37 +25,40 @@
 #include <stdlib.h>
 #include <assert.h>
 
-std::unique_ptr<Envelope> CreateEnvelope (const std::string &buffer, int id, int order_id, bool to_expl) {
+using std::unique_ptr;
+using std::string;
+
+unique_ptr<Envelope> CreateEnvelope (const string &buffer, int id, int order_id, bool to_expl) {
     if (buffer.empty()) {
         return nullptr;
     }
 
     // create result object
-    std::unique_ptr<Envelope> env = std::make_unique<Envelope>();
+    unique_ptr<Envelope> env = std::make_unique<Envelope>();
     env->issue_id = -1;
     env->in_exall = to_expl;
 
-    std::istringstream iss;   
+    std::istringstream iss;
     iss.str(buffer);
     iss >> env->index;
-    
+
     //read in the function name and parse it to generate the function id
-    std::string func_name;
+    string func_name;
     iss >> func_name;
     env->func = func_name;
     env->func_id = name2id::getId(func_name);
     env->id = id;
     env->order_id = order_id;
     env->comm = -2;
-    
-    //read in the display name 
+
+    //read in the display name
     iss >> env->display_name;
 
     if (env->func_id != LEAK && env->func_id != PCONTROL){
        iss >> env->data_type;
        env->typesMatch = true;
     }
-    
+
     /*
      * Parse format: ... <filename length> <file name> <line number> ...
      */
@@ -88,7 +91,7 @@ std::unique_ptr<Envelope> CreateEnvelope (const std::string &buffer, int id, int
         }
 
     case ISEND: {
-            std::string dest;
+            string dest;
             iss >> dest >> env->stag >> env->count >> env->comm;
             if (dest == "MPI_ANY_SOURCE") {
                 env->dest = WILDCARD;
@@ -102,7 +105,7 @@ std::unique_ptr<Envelope> CreateEnvelope (const std::string &buffer, int id, int
     case SSEND:
 	case RSEND:
     case SEND: {
-            std::string dest;
+            string dest;
             iss >> dest >> env->stag >> env->comm;
             if (dest == "MPI_ANY_SOURCE") {
                 env->dest = WILDCARD;
@@ -115,7 +118,7 @@ std::unique_ptr<Envelope> CreateEnvelope (const std::string &buffer, int id, int
         }
 
     case IRECV: {
-            std::string src;
+            string src;
             iss >> src >> env->rtag >> env->count >>  env->comm;
             if (src == "MPI_ANY_SOURCE") {
                 env->src = WILDCARD;
@@ -124,14 +127,14 @@ std::unique_ptr<Envelope> CreateEnvelope (const std::string &buffer, int id, int
                 env->src = atoi (src.c_str ());
                 env->src_wildcard = false;
             }
-            if (env->rtag < 0) 
+            if (env->rtag < 0)
                 env->rtag = WILDCARD;
             break;
         }
     case IPROBE:
     case PROBE:
     case RECV: {
-            std::string src;
+            string src;
             iss >> src >> env->rtag >> env->comm;
             if (src == "MPI_ANY_SOURCE") {
                 env->src = WILDCARD;
@@ -140,7 +143,7 @@ std::unique_ptr<Envelope> CreateEnvelope (const std::string &buffer, int id, int
                 env->src = atoi (src.c_str ());
                 env->src_wildcard = false;
             }
-            if (env->rtag < 0) 
+            if (env->rtag < 0)
                 env->rtag = WILDCARD;
             break;
         }
@@ -289,4 +292,3 @@ bool Envelope::operator== (const Envelope &e) const {
 bool Envelope::operator!= (const Envelope &e) const {
     return !((*this) == e);
 }
-
