@@ -49,6 +49,14 @@ public:
         ancestors.push_back(ancestor);
     }
 
+    inline std::vector<CB> getInterCB() const {
+        return inter_cb;
+    }
+
+    inline std::vector<CB> getIntraCB() const {
+        return intra_cb;
+    }
+
 private:
     std::vector<int> ancestors;
     CB curr_matching;
