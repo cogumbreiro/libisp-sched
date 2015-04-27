@@ -28,34 +28,27 @@
 /*
  * This implements a single transition
  */
-class CB {
+struct CB {
 public:
-    int _pid;
-    int _index;
-    CB () { }
+    /** The issuer of the MPI function */
+    int pid;
+    /** The index of the MPI function */
+    int index;
 
-    CB (int i, int ind) : _pid(i), _index(ind) {
-    }
-    CB(const CB& c) : _pid(c._pid), _index(c._index){}
+    CB() : pid(-1), index(-1) {}
+
+    CB(int p, int i) : pid(p), index(i) {}
+
     bool operator== (const CB &c) {
-        return _pid == c._pid && _index == c._index;
+        return pid == c.pid && index == c.index;
     }
     bool operator!= (const CB &c) {
         return !(*this == c);
     }
-    friend bool operator< (const CB &a, const CB &b) {
-        return a._pid < b._pid || (a._pid == b._pid && a._index < b._index);
-    }
     /*
-    CB& operator= (const CB &c) {
-        this->_pid = c._pid;
-        this->_index = c._index;
-        return *this;
+    friend bool operator< (const CB &a, const CB &b) {
+        return a.pid < b.pid || (a.pid == b.pid && a.index < b.index);
     }*/
-    std::unique_ptr<CB> copy() {
-        std::unique_ptr<CB> ptr(new CB(*this));
-        return std::move(ptr);
-    }
 };
-  
+
 #endif
