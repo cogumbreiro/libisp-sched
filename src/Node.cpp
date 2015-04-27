@@ -314,35 +314,24 @@ vector<list<CB> > Node::createAllMatchingSends(const vector<MPIFunc> &funcs, MPI
     return result;
 }
 
-void Node::getallSends (const vector<MPIFunc> &funcs) {
-    bool first = false;
-
-    for (int i = 0; i < NumProcs (); i++) {
-        list <int>::iterator iter;
-        list <int>::iterator iter_end;
-
-        iter_end = l[i].end();
-
-        for (iter = l[i].begin (); iter != iter_end; iter++) {
-            if (getTransition (i, (*iter))->getEnvelope ()->isRecvType ()) {
-                if (getTransition (i, (*iter))->getEnvelope ()->src == WILDCARD) {
-                    CB tempCB(i, *iter);
-                    if (getAllMatchingSends (l, tempCB,
-                            (!first) ? ample_set:other_wc_matches))  {
-                        first = true;
-                    }
-                }
+// XXX: move this method to Matcher/InterleavingTree?
+void Node::addAllSends (const vector<MPIFunc> &funcs) {
+    bool first = true;
+    for (auto recv : funcs) {
+        if (recv.envelope.isRecvType() && recv.envelope.src == WILDCARD) {
+            auto sends = createAllMatchingSends(funcs, recv);
+            if (sends.size() > 0) {
+                ample_set.insert(ample_set.end(), sends.begin(), sends.end());
+                return;
             }
         }
     }
-    other_wc_matches.clear();
 }
 
 void Node::getReceiveAmple (vector <list <int> > &l) {
     if (getNonWildcardReceive (l)) {
         return;
     }
-
     GetallSends (l);
 }
 

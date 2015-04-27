@@ -84,7 +84,7 @@ public:
     void addWaitorTestAmple(const vector<MPIFunc> &funcs);
     bool addNonWildcardReceive(const vector<MPIFunc> &funcs);
     vector<list<CB> > createAllMatchingSends(const vector<MPIFunc> &funcs, MPIFunc &recv);
-    void getallSends (const vector<MPIFunc> &funcs);
+    void addAllSends (const vector<MPIFunc> &funcs);
     void getReceiveAmple (vector <list <int> > &l);
     bool getAmpleSet ();
 //    const Transition &getTransition (int, int) const;
