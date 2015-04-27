@@ -26,9 +26,15 @@
 #include <algorithm>
 #include <sstream>
 #include <memory>
+#include <boost/iterator/indirect_iterator.hpp>
 
 #include "Envelope.hpp"
 #include "Transition.hpp"
+
+using std::unique_ptr;
+using std::vector;
+using boost::indirect_iterator;
+using boost::make_indirect_iterator;
 
 /*
  * This implements a TransitionList and updates "Intra-Completes-Before"
@@ -41,8 +47,25 @@ public:
     inline const Transition & get(int index) const {
         return *tlist[index];
     }
-    bool addTransition (std::unique_ptr<Transition> t);
-        
+    bool addTransition (unique_ptr<Transition> t);
+
+    inline indirect_iterator<vector<unique_ptr<Transition> >::iterator> begin () {
+        return make_indirect_iterator(tlist.begin());
+    }
+
+    inline indirect_iterator<vector<unique_ptr<Transition> >::iterator> end () {
+        return make_indirect_iterator(tlist.end());
+    }
+
+    inline indirect_iterator<vector<unique_ptr<Transition> >::reverse_iterator> rbegin () {
+        return make_indirect_iterator(tlist.rbegin());
+    }
+
+    inline indirect_iterator<vector<unique_ptr<Transition> >::reverse_iterator> rend () {
+        return make_indirect_iterator(tlist.rend());
+    }
+
+
 private:
     std::vector<std::unique_ptr<Transition> > tlist;
     std::list<int> ulist;
