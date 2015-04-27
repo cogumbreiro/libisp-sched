@@ -18,799 +18,13 @@
  * Contact:     isp-dev@cs.utah.edu
  */
 
-#include "InterleavingTree.hpp"
 #include <sstream>
 #include <map>
 #include <queue>
 #include <string.h>
-#ifndef WIN32
-#include <pthread.h>
-#endif
-#ifdef USE_OPENMP
-#include <omp.h>
-#endif
 
-//[grz] std::vector <TransitionList*> Node::_tlist;
-
-//[grz] never called
-Node::Node ():has_child (false) {
-}
-
-Node::Node (int num_procs) : has_child (false), _level(0),
-        _num_procs(num_procs) {
-
-//[grz]    backtrack_i = NULL;
-    type = GENERAL_NODE;
-#ifdef CONFIG_BOUNDED_MIXING
-    expand = false;
-#endif
-    has_aux_coenabled_sends = false;
-//[grz]    tlist_dealloc = true;
-    for (int i = 0; i< num_procs ;i++) {
-        _tlist.push_back(new TransitionList (i));
-    }
-}
-
-Node::Node (Node &n) {
-    *this = n;
-}
-
-Node::Node (Node &n, bool copyTL) {
-    if (copyTL) {
-        tlist_dealloc = true;
-        for (int i = 0 ; i < _num_procs; i++) {
-            TransitionList *tl = new TransitionList (*(n._tlist[i]));
-            _tlist.push_back (tl);
-        }
-    } else {
-        for (int i = 0 ; i < _num_procs; i++) {
-            _tlist.push_back (n._tlist[i]);
-        }
-    }
-
-    _num_procs = n.NumProcs();
-    type = GENERAL_NODE;
-    _level = (n.GetLevel())+1;
-    itree = n.itree;
-    has_child = false;
-    *this = n;  
-}
-
-Node::~Node() {
-    int i;
-        for(i=0; i<_num_procs; i++)
-            delete this->_tlist[i];
-}
-
-
-Node &Node::operator= (Node &n) {
-    _num_procs = n.NumProcs ();
-    for (int i = 0 ; i < _num_procs; i++) {
-        _tlist.push_back(new TransitionList(*n._tlist[i]));
-    }
-    _level = (n.GetLevel())+1;
-    has_child = false;
-    itree = n.itree;
-#ifdef CONFIG_BOUNDED_MIXING
-    expand = false;
-#endif
-    return *this;
-}
-
-void Node::deepCopy() {
-    int i;
-    std::vector <TransitionList*> tlist;
-    for(i=0; i<_num_procs; i++) {
-        TransitionList *tl = new TransitionList(*(this->_tlist[i]));
-        tlist.push_back(tl);
-    }
-    _tlist = tlist;
-    tlist_dealloc = true;
-}
-
-void Node::setITree(ITree* new_itree) {
-    itree = new_itree;
-}
-
-ITree* Node::getITree() {
-    return itree;
-}
-
-int Node::NumProcs () {
-    return _num_procs;
-}
-
-int Node::GetLevel () {
-    return _level;
-}
-
-int Node::getTotalMpiCalls() {
-    int sum = 0;
-    std::vector <TransitionList *> ::iterator iter;
-    std::vector <TransitionList *> ::iterator iter_end = _tlist.end();
-
-    for (iter=_tlist.begin(); iter != iter_end; iter++) {
-        sum += (*iter)->_tlist.size();
-    }
-    return sum;
-}
-
-bool Node::AllAncestorsMatched (CB &c, std::vector <int> &l) {
-   
-    bool is_wait_or_test_type = GetTransition(c)->GetEnvelope()->isWaitorTestType();
-
-    std::vector <int>::iterator iter, iter2, iter2_end;
-    std::vector <int>::iterator iter_end = l.end();
-    for (iter = l.begin (); iter != iter_end; iter++) {
-        if (!itree->is_matched[c._pid][(*iter)]) {
-// Wei-Fan Chiang: I don't know why I need to add this line. But, I need it........
-            if (_tlist[c._pid]->_tlist[(*iter)].GetEnvelope ()->func_id == PCONTROL) continue;
-            if (is_wait_or_test_type && !Scheduler::_send_block) {
-                if (_tlist[c._pid]->_tlist[(*iter)].GetEnvelope ()->func_id == ISEND) {
-                        continue;
-                }
-            }
-            return false;
-        } else if (_tlist[c._pid]->_tlist[*iter].GetEnvelope()->func_id == WAIT ||
-                   _tlist[c._pid]->_tlist[*iter].GetEnvelope()->func_id == TEST ||
-                   _tlist[c._pid]->_tlist[*iter].GetEnvelope()->func_id == WAITALL ||
-                   _tlist[c._pid]->_tlist[*iter].GetEnvelope()->func_id == TESTALL) {
-
-            Transition t = _tlist[c._pid]->_tlist[*iter];
-            iter2_end = t.get_ancestors().end();
-            for (iter2 = t.get_ancestors().begin (); iter2 != iter2_end; iter2++) {
-                Envelope* env_f = _tlist[c._pid]->_tlist[*iter2].GetEnvelope();
-                Envelope* env_s = GetTransition (c)->GetEnvelope();
-                if(!itree->is_matched[c._pid][(*iter2)] &&
-                    env_f->isSendType () && env_s->isSendType () &&
-                    env_f->dest == env_s->dest && env_f->comm == env_s->comm &&
-                    env_f->stag == env_s->stag) {
-                    return false;
-                }
-            }
-        }
-    }
-    return true;
-}
-
-bool Node::AnyAncestorMatched (CB &c, std::vector<int> &l) {
-    std::vector <int>::iterator it;
-
-    bool any_match = false;
-
-    Envelope *e = GetTransition (c)->GetEnvelope ();
-
-    std::vector <int>::iterator iter;
-    std::vector <int>::iterator iter_end = l.end();
-
-    std::vector <int>::iterator it_end = e->req_procs.end();
-
-    bool is_wait_or_test_type = GetTransition(c)->GetEnvelope()->isWaitorTestType();
-    if (is_wait_or_test_type && l.size () == 0) {
-        return true;
-    }
-
-    for (it = e->req_procs.begin (); it != it_end; it++) {
-        if (itree->is_matched[c._pid][*it] || 
-            (is_wait_or_test_type && !Scheduler::_send_block && _tlist[c._pid]->_tlist[*it].GetEnvelope()->func_id == ISEND)) {
-            any_match = true;
-        }
-        for (iter = l.begin (); iter != iter_end; iter++) {
-            if ((*iter) == *it) {
-                iter = l.erase (iter);
-                iter_end = l.end ();
-                break;
-            }
-        }
-    }
-    if (!any_match) {
-        return false;
-    }
-
-    iter_end = l.end();
-
-    for (iter = l.begin (); iter != iter_end; iter++) {
-        if(!itree->is_matched[c._pid][*iter]) {
-            return false;
-        }
-    }
-
-    return true;
-}
-
-/* Comment this method out if pthread is desired instead of OpenMP */
-/* Note that the use of reverse iterator here is for performance reason 
- * so that we can break off the loop when we hit the last_matched
- * transition - If we stop using reverse iterator - we need to stop using
- * reverse iterator in GetMatchingSends as well - otherwise we won't 
- * be able to preserve the program order matching of receives/sends */
-void Node::GetEnabledTransitionsOpenMP (std::vector <std::list <int> >&l) {
-    l.clear ();
-
-    for (int i = 0; i < NumProcs(); i++) {
-        l.push_back (std::list <int> ());
-    }
-
-#ifdef USE_OPENMP
-    #pragma omp parallel for
-#endif
-    for (int i = 0 ; i < NumProcs () ;i++) {
-        std::vector <Transition>::reverse_iterator iter =
-            _tlist[i]->_tlist.rbegin();
-        std::vector <Transition>::reverse_iterator iter_end;
-        CB c(i,0);
-
-        iter_end = _tlist[i]->_tlist.rend();
-        int j = (int)_tlist[i]->_tlist.size()-1;
-        for (; iter != iter_end; iter++) {
-            c._index = j;
-
-            if( !itree->is_matched[i][j] ) {
-                std::vector<int> &ancestor_list(GetTransition(c)->get_ancestors());
-                if ((iter->GetEnvelope ()->func_id != WAITANY &&
-                        iter->GetEnvelope ()->func_id != TESTANY) &&
-                        AllAncestorsMatched (c,ancestor_list)) {
-                    l[i].push_back (j);
-                } else if ((iter->GetEnvelope()->func_id == WAITANY ||
-                        iter->GetEnvelope()->func_id == TESTANY) &&
-                        AnyAncestorMatched (c,ancestor_list)) {
-                    l[i].push_back (j);
-
-                }
-            }
-            j--;
-            if (j <= itree->last_matched[i])
-                break;
-            
-        }
-    }
-}
-
-/* This is the exact same as the above, just with OpenMP disabled. */
-/* Note that the use of reverse iterator here is for performance reason 
- * so that we can break off the loop when we hit the last_matched
- * transition - If we stop using reverse iterator - we need to stop using
- * reverse iterator in GetMatchingSends as well - otherwise we won't 
- * be able to preserve the program order matching of receives/sends */
-void Node::GetEnabledTransitionsSingleThreaded (std::vector <std::list <int> > &l) {
-    l.clear ();
-
-    for (int i = 0; i < NumProcs(); i++) {
-        l.push_back (std::list <int> ());
-    }
-
-    for (int i = 0 ; i < NumProcs () ;i++) {
-        std::vector <Transition>::reverse_iterator iter =
-            _tlist[i]->_tlist.rbegin();
-        std::vector <Transition>::reverse_iterator iter_end;
-        CB c(i,0);
-
-        iter_end = _tlist[i]->_tlist.rend();
-        int j = (int)_tlist[i]->_tlist.size()-1;
-        for (; iter != iter_end; iter++) {
-            c._index = j;
-            if (!itree->is_matched[i][j]) {
-                std::vector<int> &ancestor_list(GetTransition(c)->get_ancestors());
-                if ((iter->GetEnvelope ()->func_id != WAITANY &&
-                        iter->GetEnvelope ()->func_id != TESTANY) &&
-                        AllAncestorsMatched (c,ancestor_list)) {
-                    l[i].push_back (j);
-                } else if ((iter->GetEnvelope()->func_id == WAITANY ||
-                        iter->GetEnvelope()->func_id == TESTANY) &&
-                        AnyAncestorMatched (c,ancestor_list)) {
-                    l[i].push_back (j);
-
-                }
-            }
-            j--;
-            if (j <= itree->last_matched[i])
-                break;
-            
-        }
-    }
-
-}
-
-void print(std::vector<std::list <int> > &l) {
-    for (unsigned int i = 0 ; i < l.size(); i++) {
-        copy (l[i].begin(), l[i].end(), std::ostream_iterator <int> (std::cout, " "));
-        std::cout<< std::endl;
-    }
-}
-void print(std::vector<std::list <CB> > &l) {
-    std::list <CB>::iterator iter;
-    std::list <CB>::iterator iter_end;
-    
-   for (unsigned int i  = 0 ; i < l.size(); i++) {
-       iter_end = l[i].end();
-       for (iter = l[i].begin(); iter != iter_end; iter++) {
-           std::cout << iter->_pid << "," << iter->_index << " ";
-       }
-       std::cout << std::endl;
-    }
-}
-
-void *GetEnabledTransitionsThreadC (void* obj) {
-    
-    struct thread_data *my_data;
-    my_data = (struct thread_data*) obj;
-    Node *n = my_data->node;
-    n->GetEnabledTransitionsThread(my_data->pid, my_data->l);
-    //    pthread_exit(NULL);
-    return NULL;
-
-}
-
-/*
- * Uncomment this to have a pthread GetEnabledTransitions 
- */
-/*
-void Node::GetEnabledTransitions (std::vector <std::list <int> > &l) {
-
-    l.clear();
-    pthread_t *threads = new pthread_t [NumProcs()];
-    thread_data *t = new thread_data [NumProcs()];
-    for (int i = 0; i < NumProcs(); i++) {
-        l.push_back(std::list <int> ());
-    }
-    for (int i = 0; i < NumProcs(); i++) {
-        t[i].node = this;
-        t[i].pid = i;
-        t[i].l = &l[i];
-        pthread_create(&threads[i], NULL, GetEnabledTransitionsThreadC, (void *) &t[i]);
-
-    }
-    void* status;
-    for (int t = 0; t < NumProcs(); t++) {
-        pthread_join(threads[t], &status);
-    }
-
-
-}
-*/
-
-/* This function is used when we used pthread instead of OpenMP */
-
-void Node::GetEnabledTransitionsThread(int pid, std::list<int> *l) {
-    CB c(0,0);
-    std::vector <Transition>::reverse_iterator iter;
-    std::vector <Transition>::reverse_iterator iter_end;
-    
-    iter_end = _tlist[pid]->_tlist.rend();
-    c._pid = pid;
-
-    int j = (int)_tlist[pid]->_tlist.size()-1;
-    for (iter = _tlist[pid]->_tlist.rbegin (); iter != iter_end; iter++) {
-        c._index = j;
-
-        if (!itree->is_matched[pid][j]){  
-            std::vector<int> &ancestor_list(GetTransition(c)->get_ancestors());
-            if ((iter->GetEnvelope()->func_id != WAITANY &&
-                 iter->GetEnvelope()->func_id != TESTANY) &&
-                AllAncestorsMatched (c,ancestor_list)) {
-                l->push_back (j);
-            } else if ((iter->GetEnvelope()->func_id == WAITANY ||
-                        iter->GetEnvelope()->func_id == TESTANY) &&
-                       AnyAncestorMatched (c,ancestor_list)) {
-                l->push_back (j);
-            }
-        }
-        j--;
-        if (j <= itree->last_matched[pid])
-            break;
-    }
-}
-
-void Node::GetWaitorTestAmple (std::vector <std::list <int> > &l) {
-    std::list <CB> blist;
-    for (int i = 0; i < NumProcs (); i++) {
-        std::list <int>::iterator iter;
-        std::list <int>::iterator iter_end;
-        Envelope *e;
-        iter_end = l[i].end();
-        for (iter = l[i].begin (); iter != iter_end; iter++) {
-            e = GetTransition(i, (*iter))->GetEnvelope();
-
-            if (e->isWaitorTestType ()) {
-                blist.push_back (CB(i, *iter));
-            }
-        }
-    }
-    if (!blist.empty ()) {
-        ample_set.push_back (blist);
-
-    }
-}
-
-bool Node::GetCollectiveAmple (std::vector <std::list <int> > &l, int collective) {
-    std::list <CB> blist;
-    std::list <CB> flist;
-
-    for (int i = 0; i < NumProcs (); i++) {
-        std::list <int>::iterator iter;
-        std::list <int>::iterator iter_end;
-        
-        iter_end = l[i].end();
-        for (iter = l[i].begin (); iter != iter_end; iter++) {
-            if (GetTransition (i, *iter)->GetEnvelope ()->func_id == collective) {
-                blist.push_back (CB(i, *iter));
-            }
-        }
-    }
-
-    if (collective == FINALIZE) {
-        if ((int)blist.size () == NumProcs ()) {
-            ample_set.push_back (blist);
-            return true;
-        }
-        return false;
-    }
-
-    Envelope *e1;
-    Envelope *e2;
-    std::list <CB>::iterator iter1;
-    int nprocs;
-    std::string comm;
-    std::list <CB>::iterator iter_end;
-    std::list <CB>::iterator iter;
-    std::list <CB>::iterator iter3;
-
-    iter_end = blist.end();
-
-    for (iter = blist.begin (); iter != iter_end; iter++) {
-        e1 = GetTransition (*iter)->GetEnvelope ();
-        nprocs = e1->nprocs;
-        comm = e1->comm;
-        for (iter1 = blist.begin (); iter1 != iter_end; iter1++) {
-            e2 = GetTransition (*iter1)->GetEnvelope ();
-            if (e2->comm == e1->comm) {
-                flist.push_back (CB(*iter1));
-            }
-        }
-        if ((collective == BCAST || collective == GATHER ||
-             collective == SCATTER || collective == SCATTERV ||
-             collective == GATHERV || collective == REDUCE) && !flist.empty()) {
-            std::list <CB>::iterator iter;
-            std::list <CB>::iterator iter_end2 = flist.end();
-
-            int root =
-                GetTransition (*flist.begin())->GetEnvelope ()->count;
-            for (iter = flist.begin (); iter != iter_end2; iter++) {
-                int root1 = GetTransition (*iter)->GetEnvelope ()->count;
-
-                if (root != root1) {
-                    //FreeMemory(flist);
-                    flist.clear ();
-                    //FreeMemory(blist);
-                    return false;
-                }
-            }
-        }
- 
-        if (collective == COMM_CREATE || collective == COMM_DUP ||
-            collective == CART_CREATE || collective == COMM_SPLIT) {
-            /* 0 = COMM_WORLD, 1 = COMM_SELF, 2 = COMM_NULL */
-            static int comm_id = 3;
-            if (collective == COMM_SPLIT) {
-                std::map<int, int> colorcount;
-
-                /* Mark which colors are being used in the map. */
-                std::list <CB>::iterator iter;
-                std::list <CB>::iterator iter_end2 = flist.end();
-                for (iter = flist.begin (); iter != iter_end2; iter++) {
-                    colorcount[GetTransition (*iter)->GetEnvelope ()->comm_split_color] = 1;
-                }
-
-                /* Assign comm_id's to all of the new communicators. */
-                std::map <int, int>::iterator iter_map;
-                std::map <int, int>::iterator iter_map_end = colorcount.end();
-                for (iter_map = colorcount.begin (); iter_map != iter_map_end; iter_map++) {
-                    iter_map->second = comm_id++;
-                }
-
-                /* Put the new IDs in the envelopes. */
-                for (iter = flist.begin (); iter != iter_end2; iter++) {
-                    Envelope *e = GetTransition (*iter)->GetEnvelope ();
-                    e->comm_id = colorcount[e->comm_split_color];
-                }
-            } else {
-                int id = comm_id++;
-
-                std::list <CB>::iterator iter;
-                std::list <CB>::iterator iter_end2 = flist.end();
-                for (iter = flist.begin (); iter != iter_end2; iter++) {
-                    GetTransition(*iter)->GetEnvelope()->comm_id = id;
-                }
-            }
-        }
-
-        if ((int)flist.size () == nprocs) {
-            break;
-        } else {
-            flist.clear ();
-        }
-    }
-
-    if (! flist.empty ()) {
-        ample_set.push_back (flist);
-        return true;
-    }
-    return false;
-}
-
-bool Node::getNonWildcardReceive (std::vector <std::list <int> > &l) {
-    for (int i = 0; i < NumProcs (); i++) {
-        std::list <int>::iterator iter;
-        std::list <int>::iterator iter_end;
-        
-        iter_end= l[i].end();
-        for (iter = l[i].begin (); iter != iter_end; iter++) {
-            
-            if (GetTransition (i, *iter)->GetEnvelope ()->isRecvType ()) {
-                if (GetTransition (i, *iter)->GetEnvelope ()->src != WILDCARD) {
-                    CB tempCB(i, *iter);
-                    CB c1;
-                    if(getMatchingSend (c1, l, tempCB)) {
-                        std::list <CB> ml;
-                        ml.push_back (c1);
-                        ml.push_back (CB(i, *iter));
-                        ample_set.push_back (ml);
-                        return true;
-                    }
-                }
-            }
-        }
-    }
-    return false;
-}
-
-/* The use of reverse_iterator here is necessary to preserve program-order
- * matching - This is based on the fact that GetEnabledTransistions also
- * uses a reverse iterator */
-bool Node::getMatchingSend (CB &res, std::vector <std::list <int> > &l, CB &c) {
-    int src = GetTransition(c)->GetEnvelope ()->src;
-    std::list <int>::reverse_iterator iter;
-    std::list <int>::reverse_iterator iter_end = l[src].rend();
-    Envelope *e;
-    Envelope *c_env = GetTransition(c)->GetEnvelope();
-    for (iter = l[src].rbegin (); iter != iter_end; iter++) {
-        e = GetTransition(src, (*iter))->GetEnvelope();
-
-        if (e->isSendType () &&
-            e->dest == c._pid &&
-            e->comm == c_env->comm &&
-            (e->stag == c_env->rtag || c_env->rtag == WILDCARD)) {
-            res._pid = src;
-            res._index = *iter;
-            return true;
-        }
-    }
-    return false;
-}
-
-bool Node::getAllMatchingSends (std::vector <std::list <int> > &l, CB &c, 
-                                std::vector <std::list <CB> >& ms) {
-    std::list <int>::reverse_iterator iter;
-    std::list <int>::reverse_iterator iter_end;
-    Envelope *e;
-    Envelope *c_env = GetTransition(c)->GetEnvelope();
-    bool found_ample = false;
-    std::set<CB> *sends = &itree->matched_sends[c];
-
-    for (int i = 0; i < NumProcs (); i++) {
-
-        iter_end = l[i].rend();
-        for (iter = l[i].rbegin (); iter != iter_end; iter++) {
-            e = GetTransition(i, *iter)->GetEnvelope();
-
-            if (e->isSendType () &&
-                    e->dest == c._pid &&
-                    e->comm == c_env->comm &&
-                    (e->stag == c_env->rtag || c_env->rtag == WILDCARD) && (
-#ifdef CONFIG_OPTIONAL_AMPLE_SET_FIX
-                    Scheduler::_no_ample_set_fix ? true :
-#endif
-                          (sends->find(CB(i, *iter)) == sends->end()))) {
-                std::list <CB> ml;
-                ml.push_back (CB(i, *iter));
-                ml.push_back (c);
-                ms.push_back (ml);
-                found_ample = true;
-                break;
-            }
-        }
-    }
-    return found_ample;
-}
-
-void Node::GetallSends (std::vector <std::list <int> > &l) {
-    bool first = false;
-
-    for (int i = 0; i < NumProcs (); i++) {
-        std::list <int>::iterator iter;
-        std::list <int>::iterator iter_end;
-
-        iter_end = l[i].end();
-
-        for (iter = l[i].begin (); iter != iter_end; iter++) {
-            if (GetTransition (i, (*iter))->GetEnvelope ()->isRecvType ()) {
-                if (GetTransition (i, (*iter))->GetEnvelope ()->src == WILDCARD) {
-                    CB tempCB(i, *iter);
-                    if (getAllMatchingSends (l, tempCB, 
-#ifdef CONFIG_OPTIONAL_AMPLE_SET_FIX
-                            Scheduler::_no_ample_set_fix ? ample_set :
-#endif
-                            (!first) ? ample_set:other_wc_matches))  {
-                        first = true;
-                    }
-                }
-            }
-        }
-    }
-    other_wc_matches.clear();
-}
-
-void Node::GetReceiveAmple (std::vector <std::list <int> > &l) {
-    if (getNonWildcardReceive (l)) {
-        return;
-    }
-    
-    GetallSends (l);
-}
-
-bool Node::GetAmpleSet () {
-    if (! ample_set.empty ()) {
-        return true;
-    }
-
-    GetEnabledTransitions (enabled_transitions);
-    /*
-     * See if there is a Barrier set ready to go!
-     */
-    GetCollectiveAmple (enabled_transitions, BARRIER);
-    if (! ample_set.empty ())
-        return true;
-
-    GetCollectiveAmple (enabled_transitions, BCAST);
-    if (! ample_set.empty ())
-        return true;
-
-
-    GetCollectiveAmple (enabled_transitions, SCATTER);
-    if (! ample_set.empty ())
-        return true;
-
-    GetCollectiveAmple (enabled_transitions, GATHER);
-    if (! ample_set.empty ())
-        return true;
-
-    GetCollectiveAmple (enabled_transitions, SCATTERV);
-    if (! ample_set.empty ())
-        return true;
-
-    GetCollectiveAmple (enabled_transitions, GATHERV);
-    if (! ample_set.empty ())
-        return true;
-
-    GetCollectiveAmple (enabled_transitions, ALLGATHER);
-    if (! ample_set.empty ())
-        return true;
-
-    GetCollectiveAmple (enabled_transitions, ALLGATHERV);
-    if (! ample_set.empty ())
-        return true;
-
-    GetCollectiveAmple (enabled_transitions, ALLTOALL);
-    if (! ample_set.empty ())
-        return true;
-
-    GetCollectiveAmple (enabled_transitions, ALLTOALLV);
-    if (! ample_set.empty ())
-        return true;
-
-    GetCollectiveAmple (enabled_transitions, SCAN);
-    if (! ample_set.empty ())
-        return true;
-
-/* == fprs begin == */
-    GetCollectiveAmple (enabled_transitions, EXSCAN);
-    if (! ample_set.empty ())
-        return true;
-/* == fprs end == */
-
-    GetCollectiveAmple (enabled_transitions, REDUCE);
-    if (! ample_set.empty ())
-        return true;
-
-    GetCollectiveAmple (enabled_transitions, REDUCE_SCATTER);
-    if (! ample_set.empty ())
-        return true;
-
-    GetCollectiveAmple (enabled_transitions, ALLREDUCE);
-    if (! ample_set.empty ())
-        return true;
-
-    GetCollectiveAmple (enabled_transitions, FINALIZE);
-    if (! ample_set.empty ())
-        return true;
-
-    GetCollectiveAmple (enabled_transitions, CART_CREATE);
-    if (! ample_set.empty ())
-        return true;
-
-    GetCollectiveAmple (enabled_transitions, COMM_CREATE);
-    if (! ample_set.empty ())
-        return true;
-
-    GetCollectiveAmple (enabled_transitions, COMM_DUP);
-    if (! ample_set.empty ())
-        return true;
-
-    GetCollectiveAmple (enabled_transitions, COMM_SPLIT);
-    if (! ample_set.empty ())
-        return true;
-
-    GetCollectiveAmple (enabled_transitions, COMM_FREE);
-    if (! ample_set.empty ())
-        return true;
-
-    GetWaitorTestAmple (enabled_transitions);
-    if (! ample_set.empty ()) {
-        return true;
-    }
-    GetReceiveAmple (enabled_transitions);
-    if (! ample_set.empty ())
-        return true;
-
-    /* Special case for Test & Iprobe calls 
-     * If no call can progress and 
-     * If there's a test call then we can match it and return false. 
-     * Also need to remove the CB edges */
-
-    std::list<CB> test_list;
-    for (int i = 0; i < NumProcs(); i++) {
-        Transition t = _tlist[i]->_tlist.back();
-        if (t.GetEnvelope()->func_id == TEST ||
-            t.GetEnvelope()->func_id == TESTALL ||
-            t.GetEnvelope()->func_id == TESTANY ||
-            t.GetEnvelope()->func_id == IPROBE) {
-            test_list.push_back(CB (i, (int)_tlist[i]->_tlist.size()-1));
-
-            //Need to clean up the CB edge here
-            //Each of this transition's ancestors will have an edge
-            //to each of the transition's descendants
-            std::vector<int>::iterator iter = t.get_ancestors().begin();
-            std::vector<int>::iterator iter_end = t.get_ancestors().end();
-            for (; iter != iter_end; iter++) {
-                std::vector<CB>::iterator iter2 = t.get_intra_cb().begin();
-                std::vector<CB>::iterator iter2_end = t.get_intra_cb().end();
-                for (; iter2 != iter2_end; iter2++) {
-                    Transition* descendant = GetTransition(*iter2);
-                    Transition* ancestor = GetTransition(i, *iter);
-                    descendant->mod_ancestors().push_back(*iter);
-                    ancestor->AddIntraCB(*iter2);
-                }
-            }
-        }
-    }
-    if (!test_list.empty()) {
-        ample_set.push_back(test_list);
-    }
-    if (!ample_set.empty())
-        return true;
-
-    
-    return false;
-}
-
-Transition *Node::GetTransition (CB &c) {
-    return GetTransition(c._pid, c._index);
-}
-
-Transition *Node::GetTransition (int pid, int index) {
-    return &_tlist[pid]->_tlist[index];
-}
-
+#include "InterleavingTree.hpp"
+#include "Node.hpp"
 
 ITree::ITree (Node *n, std::string name) {
 
@@ -820,7 +34,7 @@ ITree::ITree (Node *n, std::string name) {
     have_wildcard = false;
 #ifdef CONFIG_BOUNDED_MIXING
     expanded = 0;
-#endif 
+#endif
     for (int i = 0; i < n->NumProcs(); i ++) {
         is_matched.push_back (new bool [MAX_TRANSITIONS]());
         is_issued.push_back(new bool [MAX_TRANSITIONS]());
@@ -851,15 +65,13 @@ Node *ITree::GetCurrNode () {
     return _slist[depth];
 }
 
-int ITree::CHECK (ServerSocket &sock, std::list <int> &l) {
+int ITree::CHECK (/*ServerSocket &sock, */std::list <int> &l) {
     bool probe_flag = false;
     int choice = 0; // default is EXP_MODE_LEFT_MOST
     Node *n = GetCurrNode();
     Envelope *env;
     if (n->GetAmpleSet()) {
-
-/* == fprs begin == */
-        std::list<CB> cbl;
+      std::list<CB> cbl;
 
         // modify the ample set
         if (Scheduler::_fprs) {
@@ -876,11 +88,11 @@ int ITree::CHECK (ServerSocket &sock, std::list <int> &l) {
             			new_ample_set.push_back(*as_iter);
 			            dont_care = false;
             			break;
-		            }	
+		            }
             	}
 
             	if (dont_care) {
-            		dont_care_set.push_back(*as_iter);	
+            		dont_care_set.push_back(*as_iter);
             	}
             }
             int choice_dc = 0;
@@ -898,12 +110,6 @@ int ITree::CHECK (ServerSocket &sock, std::list <int> &l) {
             }
             cbl = n->ample_set.at(choice);
         }
-
-#ifdef FIB
-        if (Scheduler::_fib) {
-            al_curr.push_back(cbl);
-        }
-#endif
 
         if (depth >= (int)_slist.size ()-1) {
             Node *n_ = new Node(*n);
@@ -938,7 +144,7 @@ int ITree::CHECK (ServerSocket &sock, std::list <int> &l) {
         int source = cbl.front ()._pid;
 
         if (n->GetTransition(cbl.front())->GetEnvelope ()->isSendType ()) {
-            /* if it's a probe call, we don't issue the send, so no 
+            /* if it's a probe call, we don't issue the send, so no
                need to update the matching of the send */
             if (n->GetTransition(cbl.back())->GetEnvelope ()->func_id != PROBE &&
                 n->GetTransition(cbl.back())->GetEnvelope ()->func_id != IPROBE) {
@@ -950,7 +156,7 @@ int ITree::CHECK (ServerSocket &sock, std::list <int> &l) {
 
             n->GetTransition(cbl.back())->set_curr_matching(cbl.front());
         }
-        
+
         //Check if the data types match CGD
         if (n->GetTransition(cbl.front())->GetEnvelope()->isSendType ()){
 					int currType = n->GetTransition(cbl.front())->GetEnvelope()->data_type;
@@ -966,7 +172,7 @@ int ITree::CHECK (ServerSocket &sock, std::list <int> &l) {
 						Scheduler::_mismatchLog << env->filename << " "
 											    << env->linenumber << std::endl;
 						env = n->GetTransition(cbl.back())->GetEnvelope ();
-						Scheduler::_mismatchLog << env->filename << " " 
+						Scheduler::_mismatchLog << env->filename << " "
 										        << env->linenumber << std::endl;
 					}
         }
@@ -987,7 +193,7 @@ int ITree::CHECK (ServerSocket &sock, std::list <int> &l) {
                 test_iprobe_calls_only = false;
                 break;
             }
-                        
+
         }
 
         for (iter = cbl.begin (); iter != iter_end; iter++) {
@@ -1005,18 +211,18 @@ int ITree::CHECK (ServerSocket &sock, std::list <int> &l) {
             }
 
             /* increase the last matched transition to the latest matched transition */
-            
+
             int temp_last_matched = last_matched[iter->_pid];
-            while (temp_last_matched < (int) (n->_tlist[iter->_pid]->_tlist.size()-1) 
+            while (temp_last_matched < (int) (n->_tlist[iter->_pid]->_tlist.size()-1)
                    && is_matched[iter->_pid][temp_last_matched + 1]) {
                 temp_last_matched ++;
             }
             last_matched[iter->_pid] = temp_last_matched;
-                   
+
             /* if the call has been issued earlier, do not issue it again */
             /* What happens here: If we issue a pair of Send/Probe, do
              * not allow the scheduler to read the next envelope of
-             * the Send process. If we issue a pair of Send/Recv, allow the 
+             * the Send process. If we issue a pair of Send/Recv, allow the
              * scheduler to read the next envelope of the send process */
 
             if (is_issued[iter->_pid][iter->_index]) {
@@ -1026,9 +232,9 @@ int ITree::CHECK (ServerSocket &sock, std::list <int> &l) {
                 continue;
             }
             std::ostringstream oss;
-            
+
             oss << goahead << " " << env->index << " " << source;
-            
+
             env->Issued ();
             if (env->func_id == COMM_CREATE || env->func_id == COMM_DUP
                 || env->func_id == CART_CREATE || env->func_id == COMM_SPLIT) {
@@ -1048,39 +254,26 @@ int ITree::CHECK (ServerSocket &sock, std::list <int> &l) {
         }
     } else {
         sock.ExitMpiProcessAndWait (true);
-
-        if (!Scheduler::_quiet && !Scheduler::_limit_output) {
-            std::cout << "-----------------------------------------" << std::endl;
-            if (n->getTotalMpiCalls() < CONSOLE_OUTPUT_THRESHOLD)
-              std::cout << *n << std::endl;
-
-            std::cout << "No matching MPI call found!" << std::endl;
-            std::cout << "Detected a DEADLOCK in interleaving " << 
-                      Scheduler::interleavings << std::endl;
-            
-            std::cout << "-----------------------------------------" << std::endl;
-        }
         Scheduler::_just_dead_lock = true;
         //exit (1);
         return 1;
     }
-    DR( std::cout << " [CHECK end]\n"; )
     return 0;
 }
 
 /* This method is called at the end of each interleaving
  * The following task is accomplished:
  * Add the interCB edges to all the nodes
- * Find out the sends for which buffering would make it illegible 
+ * Find out the sends for which buffering would make it illegible
  * to match with some wildcard receives.
- * Side effects: interCB edges are added, ample set will be changed 
+ * Side effects: interCB edges are added, ample set will be changed
  * if the sends could become a potential match due to buffering
  */
 void ITree::ProcessInterleaving () {
     /* Only do this if we have seen a wildcard receive before
      * Otherwise we'll just kill performance!!! */
     if (have_wildcard) {
-        /* Go back to each transition and add interCB edges 
+        /* Go back to each transition and add interCB edges
          * Note that we could not do this on the fly as we had not
          * seen all the possible matchings */
         AddInterCB ();
@@ -1090,10 +283,10 @@ void ITree::ProcessInterleaving () {
     }
 }
 
-/* Precond: c has to be of type Wait or Test 
- * Return a CB edge that points to a send 
- * if this Wait/Waitall is for a send request, return NULL otherwise. 
- * Whichever method that calls this will have 
+/* Precond: c has to be of type Wait or Test
+ * Return a CB edge that points to a send
+ * if this Wait/Waitall is for a send request, return NULL otherwise.
+ * Whichever method that calls this will have
  * to make sure to clean up this returned edge to avoid memory leak */
 bool ITree::findSendOfThisWait (CB &res, CB &c) {
     Envelope *e = GetCurrNode ()->GetTransition (c)->GetEnvelope ();
@@ -1105,7 +298,7 @@ bool ITree::findSendOfThisWait (CB &res, CB &c) {
                 return true;
             }
         }
-    }    
+    }
     return false;
 }
 
@@ -1129,14 +322,9 @@ size_t ITree::getMaxTlistSize() {
  * recursion.
  */
 bool ITree::FindNonSendWaitPath (bool ** visited, CB &src, CB &dest) {
-    DR( 
-      std::cout << "  [FindNonSendWaitPath]\n"
-                << "\t\tsrc=" << src << " dest=" << dest << "\n";
-    )
-
     if (src == dest)
         return true;
-    if (src._pid == dest._pid && src._index > dest._index) 
+    if (src._pid == dest._pid && src._index > dest._index)
         return false;
 
     std::vector <CB>::iterator iter;
@@ -1153,14 +341,11 @@ bool ITree::FindNonSendWaitPath (bool ** visited, CB &src, CB &dest) {
 
     /* doing a BFS search */
     worklist.push(src);
-    DR( std::cout << "\tworklist "; )
     while (!worklist.empty()) {
         CB c;
         current = worklist.front();
-        DR( std::cout << current << " "; )
         worklist.pop();
         if (current == dest) {
-            DR( std::cout << "\n"; )
             return true;
         }
         visited[current._pid][current._index]= true;
@@ -1175,7 +360,7 @@ bool ITree::FindNonSendWaitPath (bool ** visited, CB &src, CB &dest) {
             if (!visited[iter->_pid][iter->_index]) {
                 worklist.push(*iter);
                 visited[iter->_pid][iter->_index] = true;
-                                
+
             }
         }
         /* now add all the interCB edges of current into the worklist */
@@ -1190,22 +375,20 @@ bool ITree::FindNonSendWaitPath (bool ** visited, CB &src, CB &dest) {
             if (!visited[iter->_pid][iter->_index]) {
                 worklist.push(*iter);
                 visited[iter->_pid][iter->_index] = true;
-                                
+
             }
         }
     }
-    DR( std::cout << "\n"; )
-    
     return false;
-    
+
 }
 
 void ITree::FindCoEnabledSends () {
     std::vector <Node *>::iterator iter;
     std::vector <Node *>::iterator iter_end = _slist.end ();
 
-    /* keep visited CB edges here 
-     * This array will be used by FindNonSenWait 
+    /* keep visited CB edges here
+     * This array will be used by FindNonSenWait
      * We don't want to alloc/re-alloc too many times
      */
     bool** visited = new bool* [GetCurrNode()->NumProcs()];
@@ -1215,7 +398,7 @@ void ITree::FindCoEnabledSends () {
 
     for (iter = _slist.begin (); iter != iter_end-1; iter++) {
         Node *n = (*iter);
-        
+
         /* Only care about nodes with wild card receive */
         if (!n->isWildcardNode()) continue;
 
@@ -1238,8 +421,8 @@ void ITree::FindCoEnabledSends () {
                 if (! e->isSendType ()) {
                     continue;
                 }
-                if (e->dest == n->wildcard._pid && 
-                    (e->stag == renv->rtag || renv->rtag == WILDCARD) && 
+                if (e->dest == n->wildcard._pid &&
+                    (e->stag == renv->rtag || renv->rtag == WILDCARD) &&
                     e->comm == renv->comm) {
                     CB c(i, e->index);
                     std::list <int>::iterator it;
@@ -1252,20 +435,14 @@ void ITree::FindCoEnabledSends () {
                         }
                     }
                     if (!sendcoenabled) {
-                        DR( std::cout << "Finding Path between " << (n->wildcard) << " and " << c << "\n"; )
-
                         bool overtaking = (c._pid ==
                                 GetCurrNode()->GetTransition(n->wildcard)->
                                 get_curr_matching()._pid);
-                        DR( std::cout << "overtaking=" << overtaking << "\n"; )
-                        if (overtaking || 
-                            FindNonSendWaitPath (visited, n->wildcard, c)) {
 
-                            DR( std::cout << n->wildcard << " and " << c << "are not co-enabled\n"; )
+                        if (overtaking ||
+                            FindNonSendWaitPath (visited, n->wildcard, c)) {
                             break;
                         } else {
-                            DR( std::cout << n->wildcard << " and " << c << "are co-enabled\n"; )
-
                             if(prev_sends->find(c) == prev_sends->end()) {
                                 n->has_aux_coenabled_sends = true;
                                 std::list <CB> *sends = &aux_coenabled_sends[n->wildcard];
@@ -1276,7 +453,7 @@ void ITree::FindCoEnabledSends () {
                             }
                         }
                     }
-                }   
+                }
             }
         }
     }
@@ -1306,24 +483,24 @@ void ITree::AddInterCB () {
         if ((*iter)->ample_set.size() == 0) {
             continue;
         }
-        std::list <CB> mset = (*iter)->ample_set.front();     
-        
+        std::list <CB> mset = (*iter)->ample_set.front();
+
         if (mset.size() <= 1) {
             continue;
         }
         if (mset.size() == 2) {
             Envelope *e = (*iter)->GetTransition (mset.back())->GetEnvelope ();
-            if ((e->func_id == IRECV || e->func_id == RECV) && 
+            if ((e->func_id == IRECV || e->func_id == RECV) &&
                                                     e->src == WILDCARD) {
                 GetCurrNode()->GetTransition(mset.back())->AddInterCB(mset.front());
                 continue;
-            } 
-        } 
+            }
+        }
         std::list <CB>::iterator it1;
         std::list <CB>::iterator it_end = mset.end();
         bool only_sends = true;
         for (it1 = mset.begin(); it1 != it_end ; it1++) {
-            if (! (*iter)->GetTransition(*it1)->GetEnvelope()->isSendType()) 
+            if (! (*iter)->GetTransition(*it1)->GetEnvelope()->isSendType())
                 only_sends = false;
         }
         if (only_sends)
@@ -1336,10 +513,10 @@ void ITree::AddInterCB () {
                 if (it2 != it1) {
                     GetCurrNode()->GetTransition(*it1)->AddInterCB(*it2);
 
-                }   
+                }
             }
         }
-    } 
+    }
 }
 
 /* This looks complicated, but the algorithm is as follows: Go through
@@ -1349,7 +526,6 @@ void ITree::AddInterCB () {
  * than one match sets, which means we have to cover another interleaving
  */
 bool ITree::NextInterleaving () {
-    DR( std::cout << " [NextInterleaving begin]\n"; )
     ClearInterCB();
 
     int i = depth+1;
@@ -1360,7 +536,7 @@ bool ITree::NextInterleaving () {
     if (Scheduler::_fprs) {
 	    if (Scheduler::_explore_mode == EXP_MODE_RANDOM) return true;
 	    else if (Scheduler::_explore_mode == EXP_MODE_LEFT_MOST) return false;
-    }   
+    }
     else {
         if (Scheduler::_explore_mode == EXP_MODE_RANDOM ||Scheduler::_explore_mode == EXP_MODE_LEFT_MOST)
             return false;
@@ -1370,61 +546,9 @@ bool ITree::NextInterleaving () {
         /* erase the first match-set */
         Node *n = _slist[i];
         if (!n->ample_set.empty()) {
-            DR(
-              std::vector <std::list <CB> >::iterator iter2 = n->ample_set.begin();
-              std::vector <std::list <CB> >::iterator iter_end2 = n->ample_set.end();
-              std::cout << "\t[" << i << "] ample_set:\n";
-              for(; iter2!=iter_end2; iter2++) {
-                std::list<CB>::iterator li = iter2->begin();
-                std::list<CB>::iterator lie = iter2->end();
-                std::cout << "\t\t";
-                while(li != lie) {
-                  std::cout << *li;
-                  if(++li == lie) break;
-                  std::cout << " ";
-                }
-                std::cout << "\n";
-              }
-
-              iter2 = n->ample_set.begin();
-              for(; iter2!=iter_end2; iter2++) {
-                std::list<CB>::iterator li = iter2->begin();
-                std::list<CB>::iterator lie = iter2->end();
-                for(; li!=lie; li++) {
-                  std::cout << "\t\t\t" << *n->GetTransition(*li)->GetEnvelope() << "\n";
-                }
-              }
-            )
-            
             n->ample_set.erase(n->ample_set.begin());
         }
 
-        DR(
-          if(n->isWildcardNode()) {
-            std::cout << "\t\trecv: " << n->wildcard << "\n";
-
-            std::list <CB> *acs = &aux_coenabled_sends[n->wildcard];
-            std::set <CB> *ms = &matched_sends[n->wildcard];
-
-            std::list <CB>::iterator li = acs->begin();
-            std::list <CB>::iterator lie = acs->end();
-            std::cout << "\t\taux_coenabled_sends:";
-            while(li != lie) {
-              std::cout << *li;
-              if(++li == lie) break;
-              std::cout << " ";
-            }
-            std::cout << "\n";
-
-            
-            std::set <CB>::iterator si = ms->begin();
-            std::set <CB>::iterator sie = ms->end();
-            std::cout << "\t\tmatched_sends:";
-            for(; si!=sie; si++)
-              std::cout << " " << *si;
-            std::cout << "\n";
-          }
-        )
         if (!( n->ample_set.empty() && (
 #ifdef CONFIG_OPTIONAL_AMPLE_SET_FIX
                 Scheduler::_no_ample_set_fix ? true :
@@ -1456,9 +580,6 @@ bool ITree::NextInterleaving () {
 #endif
             matched_sends[n->wildcard].clear();
         }
-#ifndef FIB
-        delete *(_slist.end()-1);
-#else
         if (depth != oldDepth) {
             delete *(_slist.end()-1);
         }
@@ -1476,314 +597,3 @@ void ITree::resetDepth () {
         _slist[depth]->_tlist[i]->last_matched = -1;
     }
 }
-
-#ifdef FIB
-void Node::updateInterHB (std::list <CB> &l) {
-    std::list <CB>::iterator iter;
-    std::list <CB>::iterator iter_end = l.end ();
-
-    for (iter = l.begin (); iter != iter_end; iter++) {
-        std::list <CB>::iterator iter1;
-        std::list <CB>::iterator iter1_end = l.end ();
-
-        for (iter1 = l.begin (); iter1 != iter1_end; iter1++) {
-            std::vector <CB>::iterator iter2, iter2_end;
-
-            if (*iter == *iter1) {
-                continue;
-            }
-            Transition t = _tlist[iter1->_pid]->_tlist[iter1->_index];
-            
-            /* Intra CB's */
-            iter2_end = t.get_intra_cb().end ();
-            for (iter2 = t.get_intra_cb().begin (); iter2 != iter2_end; iter2++) {
-                _tlist[iter->_pid]->_tlist[iter->_index].
-                    AddInterCB(*iter2);
-            }
-
-            /* Inter CB's */
-            iter2_end = t.get_inter_cb().end ();
-            for (iter2 = t.get_inter_cb().begin (); iter2 != iter2_end; iter2++) {
-                _tlist[iter->_pid]->_tlist[iter->_index].
-                    AddInterCB(*iter2);
-            }
-        }
-    }    
-}
-
-void ITree::findInterCB () {
-    std::vector<std::list<CB> >::reverse_iterator iter;
-    std::vector<std::list<CB> >::reverse_iterator iter_end = al_curr.rend ();
-    Node *n = GetCurrNode();
-
-    for (iter = al_curr.rbegin (); iter != iter_end; iter++) {
-        n->updateInterHB (*iter);
-    }
-}
-
-bool ITree::visited (CB &c, std::vector<CB> &l) {
-    std::vector<CB>::iterator iter;
-    std::vector<CB>::iterator iter_end = l.end ();
-
-    for (iter = l.begin(); iter != iter_end; iter++) {
-        if (c == *iter) {
-            return true;
-        }
-    }
-    return false;
-}
-
-bool ITree::findAdjacent (CB &res, CB &c, std::vector<CB> &l) {
-    Transition t = *GetCurrNode()->GetTransition(c);
-    std::vector<CB>::iterator iter;
-    std::vector<CB>::iterator iter_end = t.get_intra_cb().end ();
-
-    for (iter = t.get_intra_cb().begin(); iter != iter_end; iter++) {
-        if (!visited(*iter,l) && iter->_pid != -1) {
-            res = *iter;
-            return true;
-        }
-    }
-
-    iter_end = t.get_inter_cb().end();
-    for (iter = t.get_inter_cb().begin(); iter != iter_end; iter++) {
-        if (!visited(*iter,l) && (iter->_pid != -1)) {
-            res = *iter;
-            return true;
-        }
-    }
-    return false;
-}
-
-void ITree::checkBarrier(CB &c, CB &c1, std::vector<CB> &s)
-{
-    Node *n = GetCurrNode();
-    bool check_flag = false;
-    std::vector<CB>::iterator iter;
-    std::vector<CB>::iterator iter_end = s.end ();
-
-    if (n->GetTransition(c)->GetEnvelope()->isSendType() &&
-        n->GetTransition(c1)->GetEnvelope()->isRecvType() &&
-        n->GetTransition(c1)->GetEnvelope()->src == WILDCARD &&
-        n->GetTransition(c)->GetEnvelope()->dest == 
-            n->GetTransition(c1)->GetEnvelope()->id) {
-
-        // check stack
-        for(iter = s.begin (); iter != iter_end; iter++)
-        {
-            if(*iter == c1) {
-                check_flag = false;
-                break;
-            }
-            if(*iter == c) {
-                check_flag = true;
-            }
-            blist.push_back(*iter);
-        }
-    }
-    else if(n->GetTransition(c)->GetEnvelope()->isRecvType() &&
-            n->GetTransition(c1)->GetEnvelope()->isSendType() &&
-            n->GetTransition(c)->GetEnvelope()->src == WILDCARD &&
-            n->GetTransition(c1)->GetEnvelope()->dest == 
-                n->GetTransition(c)->GetEnvelope()->id) {
-        // check stack
-        for(iter = s.begin(); iter != iter_end; iter++)
-        {
-            if (*iter == c1) {
-                check_flag = false;
-                break;
-            }
-            if (*iter == c) {
-                check_flag = true;
-            }
-           if (n->GetTransition(*iter)->GetEnvelope()->func_id == BARRIER &&
-                !visited(*iter, blist) && check_flag) {
-                    // add a check for the only barrier
-                    blist.push_back(*iter);
-            }
-        }
-    }
-}
-
-void ITree::Dfs (CB &c) {
-    std::vector<CB> s;
-    std::vector<CB> visited;
-
-    s.push_back(c);
-    visited.push_back(c);
-    while (!s.empty()) {
-        CB c1 = s.back();
-        checkBarrier(c, c1, s);
-
-        CB adj;
-        if(findAdjacent(adj, c1, visited)) {
-            visited.push_back(adj);
-            s.push_back(adj);
-        } else {
-            s.pop_back();
-        }
-    }
-}
-
-void ITree::forDfs (std::list<CB> &l) {
-    std::list<CB>::iterator iter;
-    std::list<CB>::iterator iter_end = l.end ();
-
-    for (iter = l.begin(); iter != iter_end; iter++) {
-        Transition t = *GetCurrNode()->GetTransition(*iter);
-        if (t.GetEnvelope()->isRecvType() && t.GetEnvelope()->src == WILDCARD)
-        {
-            Dfs(*iter);
-        }
-    }
-}
-
-void ITree::getBarrierList () {
-    bool flag = false;
-    std::list<CB> temp;
-    std::vector<CB>::iterator iter, iter_end;
-    std::vector<std::list<CB> >::iterator iter1, iter1_end;
-    std::list<CB>::iterator iter2, iter2_end;
-
-    iter_end = blist.end ();
-    for (iter = blist.begin (); iter != iter_end; iter++) {
-        
-        iter1_end = al_curr.end ();
-        for (iter1 = al_curr.begin (); iter1 != iter1_end; iter1++) {
-            
-            iter2_end = iter1->end ();
-            for (iter2 = iter1->begin (); iter2 != iter2_end; iter2++) {
-                if(*iter2 == *iter) {
-                    flag = true;
-                    break;
-                }
-            }
-
-            if(flag)
-            {
-                for (iter2 = iter1->begin (); iter2 != iter2_end; iter2++) {
-                    temp.push_back(*iter2);
-                }
-                break;
-            }
-        }
-        flag = false;
-    }
-    if(!present(temp, FRBlist) && (temp.size() != 0))
-    {
-        FRBlist.push_back(temp);
-    }
-}
-
-bool ITree::present(std::list<CB> &l, std::vector<std::list<CB> > &b) {
-    std::vector<std::list<CB> >::iterator iter, iter_end;
-    std::list<CB>::iterator iter2, iter2_end;
-
-    if (l.empty ()) {
-        return false;
-    }
-    CB c = l.front();
-    iter_end = b.end ();
-    for (iter = b.begin (); iter != iter_end; iter++) {
-        iter2_end = iter->end ();
-        for (iter2 = iter->begin (); iter2 != iter2_end; iter2++) {
-            if(c == *iter2) {
-                return true;
-            }
-        }
-    }
-    return false;
-}
-
-void ITree::FindRelBarriers()
-{
-    std::vector<std::list<CB> >::iterator iter;
-    std::vector<std::list<CB> >::iterator iter_end = al_curr.end ();
-    
-    // Path search from every Send and Receive*
-    for (iter = al_curr.begin (); iter != iter_end; iter++)
-    {
-        forDfs(*iter);
-    }
-}
-
-//CGD
-void ITree::printTypeMismatches()
-{
-	if(Scheduler::_mismatchLog.str().length() != 0){
-		Scheduler::_logfile << "[TYPEMISMATCH]" << std::endl;
-		Scheduler::_logfile << Scheduler::_mismatchLog.str();
-		std::cout << "-----------------------------------------\n";
-		std::cout << "WARNING - The following calls don't share the same data type with their matching calls:\n";
-		std::cout << Scheduler::_mismatchLog.str();
-	}
-}
-
-void ITree::getFIB()
-{
-    std::vector<std::list<CB> >::iterator iter;
-    std::vector<std::list<CB> >::iterator iter_end = al_curr.end ();
-
-    for (iter = al_curr.begin (); iter != iter_end; iter++) {
-        CB c = iter->front ();
-        if (last_node->GetTransition(c)->GetEnvelope()->func_id == BARRIER) {
-            if (!present(*iter, FRBlist)) {
-                FIBlist.push_back(*iter);
-            }
-        }
-    }
-}
-
-void ITree::printRelBarriers()
-{
-    std::vector<std::list<CB> >::iterator iter, iter_end;
-    std::list<CB>::iterator iter2, iter2_end;
-    int i;
-    
-    getBarrierList();
-    if (!FRBlist.empty ()) {
-        std::cout << "\n";
-        std::cout<< "List of Relevant Barriers - None should be removed from the program:\n";
-        std::cout<< " FRB list size: " << FRBlist.size() << "\n";
-        iter_end = FRBlist.end ();
-        for (i = 1, iter = FRBlist.begin (); iter != iter_end; i++, iter++) {
-            std::cout << "Match Set: " << i << "\n";
-            iter2_end = iter->end ();
-            for (iter2 = iter->begin(); iter2 != iter2_end; iter2++) {
-                Envelope *env = last_node->GetTransition (*iter2)->GetEnvelope ();
-                std::cout << iter2->_pid << ": " << env->filename << ":"
-                                                    << env->linenumber << "\n";
-            }
-            std::cout << "\n";
-        }
-        std::cout << "\n";
-    }
-    
-    getFIB();
-    if (!FIBlist.empty () && !Scheduler::_limit_output) {//CGD
-        std::cout << "\n";
-        std::cout << "List of Irrelevant Barriers - If want to remove, remove a complete match set:\n";
-        iter_end = FIBlist.end ();
-        
-        Scheduler::_logfile<< "[FIB]" << std::endl;
-
-        for (i = 1, iter = FIBlist.begin (); iter != iter_end; i++, iter++) {
-            std::cout << "Match Set: " << i << "\n";
-            iter2_end = iter->end ();
-            for (iter2 = iter->begin(); iter2 != iter2_end; iter2++) {
-                Envelope *env = last_node->GetTransition (*iter2)->GetEnvelope ();
-                std::cout << iter2->_pid << ": " << env->filename << ":"
-                                                 << env->linenumber << "\n";
-                Scheduler::_logfile << env->filename << " "
-                                    << env->linenumber << std::endl;
-            }
-            std::cout << "\n";
-        }
-        std::cout << "\n";
-    } else if(!Scheduler::_limit_output){//CGD
-        std::cout << "\n";
-        std::cout << "There were no Irrelevant Barriers!\n";
-    }
-}
-
-#endif

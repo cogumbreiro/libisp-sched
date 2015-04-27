@@ -26,13 +26,11 @@
 #include <vector>
 #include <set>
 #include <iterator>
-#include "TransitionList.hpp"
 #include <list>
 #include <cassert>
-#ifndef WIN32
-#include <sys/types.h>
-#include <signal.h>
-#endif
+
+#include "TransitionList.hpp"
+#include "Matcher.hpp"
 
 enum NTYPE {
     GENERAL_NODE,
@@ -44,61 +42,41 @@ enum NTYPE {
 class Node {
 
 public:
-    Node ();
-    Node (int num_procs);
+//    Node ();
+//    Node (int num_procs);
     /*
      * Assignment Operator
-     */
+     *//*
     Node (Node &);
     Node (Node &, bool copyTL);
     ~Node();
+*/
+    Node (const Matcher & m):has_child (false), matcher(m) {}
+    //Node& operator= (Node &r);
+    //Node(const &Matcher matcher) { this->matcher = matcher; }
 
-    Node& operator= (Node &r);
-
-    inline int NumProcs ();
-    int GetLevel ();
-    inline bool isWildcardNode() {
+    inline int getNumProcs () const { return _num_procs; }
+    inline int getLevel () const { return _level; }
+    inline bool isWildcardNode() const {
         return type == WILDCARD_RECV_NODE || type == WILDCARD_PROBE_NODE;
     }
-    int  getTotalMpiCalls();
-    bool AllAncestorsMatched (CB &c, std::vector<int> &l);
-    bool AnyAncestorMatched (CB &c, std::vector<int> &l);
-    void GetEnabledTransitionsOpenMP (std::vector <std::list <int> >&);
-    void GetEnabledTransitionsSingleThreaded (std::vector <std::list <int> >&);
-    void GetEnabledTransitionsThread (int pid, std::list<int> *l);
-    bool GetCollectiveAmple (std::vector <std::list <int> > &l, int collective);
-    void GetWaitorTestAmple (std::vector <std::list <int> > &l);
+    int getTotalMpiCalls() const;
+    bool allAncestorsMatched (const CB c, const std::vector<int> &l) const;
+    bool anyAncestorMatched (const CB c, std::vector<int> &l) const;
+    void getEnabledTransitions(std::vector <std::list <int> >&);
+    bool getCollectiveAmple (std::vector <std::list <int> > &l, int collective);
+    void getWaitorTestAmple (std::vector <std::list <int> > &l);
     bool getNonWildcardReceive (std::vector <std::list <int> > &l);
-
     bool getMatchingSend (CB &res, std::vector <std::list <int> > &l, CB &c);
-    bool getAllMatchingSends (std::vector <std::list <int> > &l, CB &c, 
+    bool getAllMatchingSends (std::vector <std::list <int> > &l, CB &c,
                 std::vector <std::list <CB> > &);
-    void GetallSends (std::vector <std::list <int> > &l);
-    void GetReceiveAmple (std::vector <std::list <int> > &l);
-    bool GetAmpleSet ();
-    inline void setITree(ITree* new_itree);
-    inline ITree* getITree();
-
-    Transition *GetTransition (CB &c);
-    Transition *GetTransition (int, int);
-
-#ifdef USE_OPENMP
-    inline void GetEnabledTransitions (std::vector <std::list <int> > &l) {
-        if (Scheduler::_openmp) {
-            GetEnabledTransitionsOpenMP(l);
-        } else {
-            GetEnabledTransitionsSingleThreaded(l);
-        }
-    }
-#else
-#define GetEnabledTransitions GetEnabledTransitionsSingleThreaded
-#endif
-
-    friend std::ostream &operator<< (std::ostream &os, Node &n);
+    void getallSends (std::vector <std::list <int> > &l);
+    void getReceiveAmple (std::vector <std::list <int> > &l);
+    bool getAmpleSet ();
+//    const Transition &getTransition (int, int) const;
     void deepCopy();
 
     std::vector <Node *> children;
-//    Node *next_sibling;
     std::vector <TransitionList*> _tlist;
     bool has_child;
     bool has_aux_coenabled_sends;
@@ -115,7 +93,13 @@ public:
 private:
     int _level;
     int _num_procs;
-    ITree* itree;
+    const Matcher & matcher;
+    inline const Transition & getTransition(const CB handle) const {
+        return getTransition(handle.pid, handle.index);
+    }
+    inline const Transition & getTransition(int pid, int op_index) const {
+        return _tlist[pid]->get(op_index);
+    }
 };
 
 #endif
