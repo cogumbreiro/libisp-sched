@@ -32,6 +32,9 @@
 #include "TransitionList.hpp"
 #include "Matcher.hpp"
 
+using std::vector;
+using std::list;
+
 enum NTYPE {
     GENERAL_NODE,
     WILDCARD_RECV_NODE,
@@ -61,31 +64,31 @@ public:
         return type == WILDCARD_RECV_NODE || type == WILDCARD_PROBE_NODE;
     }
     int getTotalMpiCalls() const;
-    bool allAncestorsMatched (const CB c, const std::vector<int> &l) const;
-    bool anyAncestorMatched (const CB c, const std::vector<int> &l) const;
-    std::vector <std::list<int> > getEnabledTransitions() const;
-    bool getCollectiveAmple (const std::vector <std::list <int> > &l, int collective);
-    void getWaitorTestAmple (const std::vector <std::list <int> > &l);
-    bool getNonWildcardReceive (std::vector <std::list <int> > &l);
-    bool getMatchingSend (CB &res, std::vector <std::list <int> > &l, CB &c);
-    bool getAllMatchingSends (std::vector <std::list <int> > &l, CB &c,
-                std::vector <std::list <CB> > &);
-    void getallSends (std::vector <std::list <int> > &l);
-    void getReceiveAmple (std::vector <std::list <int> > &l);
+    bool allAncestorsMatched (const CB c, const vector<int> &l) const;
+    bool anyAncestorMatched (const CB c, const vector<int> &l) const;
+    vector <list<int> > createEnabledTransitions() const;
+    bool getCollectiveAmple (const vector <list <int> > &l, int collective);
+    void getWaitorTestAmple (const vector <list <int> > &l);
+    bool getNonWildcardReceive (vector <list <int> > &l);
+    bool getMatchingSend (CB &res, vector <list <int> > &l, CB &c);
+    bool getAllMatchingSends (vector <list <int> > &l, CB &c,
+                vector <list <CB> > &);
+    void getallSends (vector <list <int> > &l);
+    void getReceiveAmple (vector <list <int> > &l);
     bool getAmpleSet ();
 //    const Transition &getTransition (int, int) const;
     void deepCopy();
 
-    std::vector <Node *> children;
-    std::vector <TransitionList*> _tlist;
+    vector <Node *> children;
+    vector <TransitionList*> _tlist;
     bool has_child;
     bool has_aux_coenabled_sends;
     bool tlist_dealloc;
     CB wildcard;
     NTYPE type;
-    std::vector <std::list <CB> > ample_set;
-    std::vector <std::list <int> > enabled_transitions;
-    std::vector <std::list <CB> > other_wc_matches;
+    vector <list <CB> > ample_set;
+    vector <list <int> > enabled_transitions;
+    vector <list <CB> > other_wc_matches;
 #ifdef CONFIG_BOUNDED_MIXING
     bool expand;
 #endif

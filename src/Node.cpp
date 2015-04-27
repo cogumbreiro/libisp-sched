@@ -19,7 +19,8 @@
 #include "Node.hpp"
 
 using boost::adaptors::reverse;
-
+using std::list;
+using std::vector;
 /*
 Node::Node (int num_procs) : has_child (false), _level(0),
         _num_procs(num_procs) {
@@ -37,7 +38,7 @@ Node::Node (int num_procs) : has_child (false), _level(0),
 /*
 void Node::deepCopy() {
     int i;
-    std::vector <TransitionList*> tlist;
+    vector <TransitionList*> tlist;
     for(i=0; i<_num_procs; i++) {
         TransitionList *tl = new TransitionList(*(this->_tlist[i]));
         tlist.push_back(tl);
@@ -54,7 +55,7 @@ int Node::getTotalMpiCalls() const {
     return sum;
 }
 
-bool Node::allAncestorsMatched (const CB handle, const std::vector <int> &indices) const {
+bool Node::allAncestorsMatched (const CB handle, const vector <int> &indices) const {
     bool is_wait_or_test_type = getTransition(handle).getEnvelope().isWaitorTestType();
     auto pid = handle.pid;
     auto & pid_transitions = _tlist[pid];
@@ -90,7 +91,7 @@ bool Node::allAncestorsMatched (const CB handle, const std::vector <int> &indice
     return true;
 }
 
-bool Node::anyAncestorMatched(const CB handle, const std::vector<int> &ops) const {
+bool Node::anyAncestorMatched(const CB handle, const vector<int> &ops) const {
     bool any_match = false;
 
     auto env = getTransition(handle).getEnvelope ();
@@ -98,7 +99,7 @@ bool Node::anyAncestorMatched(const CB handle, const std::vector<int> &ops) cons
     if (is_wait_or_test_type && ops.size() == 0) {
         return true;
     }
-    std::vector<int> filtered = ops;
+    vector<int> filtered = ops;
     for (auto op : env.req_procs) {
         auto req = CB(handle.pid, op);
         if (matcher.isMatched(req) ||
@@ -128,11 +129,11 @@ bool Node::anyAncestorMatched(const CB handle, const std::vector<int> &ops) cons
  * transition - If we stop using reverse iterator - we need to stop using
  * reverse iterator in GetMatchingSends as well - otherwise we won't
  * be able to preserve the program order matching of receives/sends */
- std::vector <std::list<int> > Node::getEnabledTransitions() const {
-    std::vector <std::list <int> > result;
+ vector <list<int> > Node::getEnabledTransitions() const {
+    vector <list <int> > result;
 
     for (int i = 0; i < getNumProcs(); i++) {
-        result.push_back (std::list<int>());
+        result.push_back (list<int>());
     }
 
     for (int pid = 0 ; pid < getNumProcs(); pid++) {
@@ -140,7 +141,7 @@ bool Node::anyAncestorMatched(const CB handle, const std::vector<int> &ops) cons
         for (Transition & trans : *_tlist[pid]) {
             CB h(pid,op);
             if (!matcher.isMatched(h)) {
-                std::vector<int> ancestors(getTransition(h).getAncestors());
+                vector<int> ancestors(getTransition(h).getAncestors());
                 const auto func_name = trans.getEnvelope().func_id;
                 if ((func_name != WAITANY && func_name != TESTANY) &&
                         allAncestorsMatched(h, ancestors)) {
@@ -159,11 +160,11 @@ bool Node::anyAncestorMatched(const CB handle, const std::vector<int> &ops) cons
     return result;
 }
 
-void Node::getWaitorTestAmple(const std::vector <std::list <int> > &l) {
-    std::list <CB> blist;
+vector <list <int> > Node::getWaitorTestAmple() {
+    list <CB> blist;
     for (int i = 0; i < getNumProcs(); i++) {
-        std::list <int>::iterator iter;
-        std::list <int>::iterator iter_end;
+        list <int>::iterator iter;
+        list <int>::iterator iter_end;
         Envelope *e;
         iter_end = l[i].end();
         for (auto idx : l[i]) {
@@ -178,13 +179,13 @@ void Node::getWaitorTestAmple(const std::vector <std::list <int> > &l) {
     }
 }
 
-bool Node::getCollectiveAmple (std::vector <std::list <int> > &l, int collective) {
-    std::list <CB> blist;
-    std::list <CB> flist;
+bool Node::getCollectiveAmple (vector <list <int> > &l, int collective) {
+    list <CB> blist;
+    list <CB> flist;
 
     for (int i = 0; i < NumProcs (); i++) {
-        std::list <int>::iterator iter;
-        std::list <int>::iterator iter_end;
+        list <int>::iterator iter;
+        list <int>::iterator iter_end;
 
         iter_end = l[i].end();
         for (iter = l[i].begin (); iter != iter_end; iter++) {
@@ -204,12 +205,12 @@ bool Node::getCollectiveAmple (std::vector <std::list <int> > &l, int collective
 
     Envelope *e1;
     Envelope *e2;
-    std::list <CB>::iterator iter1;
+    list <CB>::iterator iter1;
     int nprocs;
     std::string comm;
-    std::list <CB>::iterator iter_end;
-    std::list <CB>::iterator iter;
-    std::list <CB>::iterator iter3;
+    list <CB>::iterator iter_end;
+    list <CB>::iterator iter;
+    list <CB>::iterator iter3;
 
     iter_end = blist.end();
 
@@ -226,8 +227,8 @@ bool Node::getCollectiveAmple (std::vector <std::list <int> > &l, int collective
         if ((collective == BCAST || collective == GATHER ||
              collective == SCATTER || collective == SCATTERV ||
              collective == GATHERV || collective == REDUCE) && !flist.empty()) {
-            std::list <CB>::iterator iter;
-            std::list <CB>::iterator iter_end2 = flist.end();
+            list <CB>::iterator iter;
+            list <CB>::iterator iter_end2 = flist.end();
 
             int root =
                 getTransition (*flist.begin())->getEnvelope ()->count;
@@ -251,8 +252,8 @@ bool Node::getCollectiveAmple (std::vector <std::list <int> > &l, int collective
                 std::map<int, int> colorcount;
 
                 /* Mark which colors are being used in the map. */
-                std::list <CB>::iterator iter;
-                std::list <CB>::iterator iter_end2 = flist.end();
+                list <CB>::iterator iter;
+                list <CB>::iterator iter_end2 = flist.end();
                 for (iter = flist.begin (); iter != iter_end2; iter++) {
                     colorcount[getTransition (*iter)->getEnvelope ()->comm_split_color] = 1;
                 }
@@ -272,8 +273,8 @@ bool Node::getCollectiveAmple (std::vector <std::list <int> > &l, int collective
             } else {
                 int id = comm_id++;
 
-                std::list <CB>::iterator iter;
-                std::list <CB>::iterator iter_end2 = flist.end();
+                list <CB>::iterator iter;
+                list <CB>::iterator iter_end2 = flist.end();
                 for (iter = flist.begin (); iter != iter_end2; iter++) {
                     getTransition(*iter)->getEnvelope()->comm_id = id;
                 }
@@ -294,10 +295,10 @@ bool Node::getCollectiveAmple (std::vector <std::list <int> > &l, int collective
     return false;
 }
 
-bool Node::getNonWildcardReceive (std::vector <std::list <int> > &l) {
+bool Node::getNonWildcardReceive (vector <list <int> > &l) {
     for (int i = 0; i < NumProcs (); i++) {
-        std::list <int>::iterator iter;
-        std::list <int>::iterator iter_end;
+        list <int>::iterator iter;
+        list <int>::iterator iter_end;
 
         iter_end= l[i].end();
         for (iter = l[i].begin (); iter != iter_end; iter++) {
@@ -307,7 +308,7 @@ bool Node::getNonWildcardReceive (std::vector <std::list <int> > &l) {
                     CB tempCB(i, *iter);
                     CB c1;
                     if(getMatchingSend (c1, l, tempCB)) {
-                        std::list <CB> ml;
+                        list <CB> ml;
                         ml.push_back (c1);
                         ml.push_back (CB(i, *iter));
                         ample_set.push_back (ml);
@@ -323,10 +324,10 @@ bool Node::getNonWildcardReceive (std::vector <std::list <int> > &l) {
 /* The use of reverse_iterator here is necessary to preserve program-order
  * matching - This is based on the fact that GetEnabledTransistions also
  * uses a reverse iterator */
-bool Node::getMatchingSend (CB &res, std::vector <std::list <int> > &l, CB &c) {
+bool Node::getMatchingSend (CB &res, vector <list <int> > &l, CB &c) {
     int src = getTransition(c)->getEnvelope ()->src;
-    std::list <int>::reverse_iterator iter;
-    std::list <int>::reverse_iterator iter_end = l[src].rend();
+    list <int>::reverse_iterator iter;
+    list <int>::reverse_iterator iter_end = l[src].rend();
     Envelope *e;
     Envelope *c_env = getTransition(c)->getEnvelope();
     for (iter = l[src].rbegin (); iter != iter_end; iter++) {
@@ -344,10 +345,10 @@ bool Node::getMatchingSend (CB &res, std::vector <std::list <int> > &l, CB &c) {
     return false;
 }
 
-bool Node::getAllMatchingSends (std::vector <std::list <int> > &l, CB &c,
-                                std::vector <std::list <CB> >& ms) {
-    std::list <int>::reverse_iterator iter;
-    std::list <int>::reverse_iterator iter_end;
+bool Node::getAllMatchingSends (vector <list <int> > &l, CB &c,
+                                vector <list <CB> >& ms) {
+    list <int>::reverse_iterator iter;
+    list <int>::reverse_iterator iter_end;
     Envelope *e;
     Envelope *c_env = getTransition(c)->getEnvelope();
     bool found_ample = false;
@@ -367,7 +368,7 @@ bool Node::getAllMatchingSends (std::vector <std::list <int> > &l, CB &c,
                     Scheduler::_no_ample_set_fix ? true :
 #endif
                           (sends->find(CB(i, *iter)) == sends->end()))) {
-                std::list <CB> ml;
+                list <CB> ml;
                 ml.push_back (CB(i, *iter));
                 ml.push_back (c);
                 ms.push_back (ml);
@@ -379,12 +380,12 @@ bool Node::getAllMatchingSends (std::vector <std::list <int> > &l, CB &c,
     return found_ample;
 }
 
-void Node::getallSends (std::vector <std::list <int> > &l) {
+void Node::getallSends (vector <list <int> > &l) {
     bool first = false;
 
     for (int i = 0; i < NumProcs (); i++) {
-        std::list <int>::iterator iter;
-        std::list <int>::iterator iter_end;
+        list <int>::iterator iter;
+        list <int>::iterator iter_end;
 
         iter_end = l[i].end();
 
@@ -406,7 +407,7 @@ void Node::getallSends (std::vector <std::list <int> > &l) {
     other_wc_matches.clear();
 }
 
-void Node::getReceiveAmple (std::vector <std::list <int> > &l) {
+void Node::getReceiveAmple (vector <list <int> > &l) {
     if (getNonWildcardReceive (l)) {
         return;
     }
@@ -521,7 +522,7 @@ bool Node::getAmpleSet () {
      * If there's a test call then we can match it and return false.
      * Also need to remove the CB edges */
 
-    std::list<CB> test_list;
+    list<CB> test_list;
     for (int i = 0; i < getNumProcs(); i++) {
         Transition t = _tlist[i]->_tlist.back();
         if (t.getEnvelope()->func_id == TEST ||
@@ -533,11 +534,11 @@ bool Node::getAmpleSet () {
             //Need to clean up the CB edge here
             //Each of this transition's ancestors will have an edge
             //to each of the transition's descendants
-            std::vector<int>::iterator iter = t.getAncestors().begin();
-            std::vector<int>::iterator iter_end = t.getAncestors().end();
+            vector<int>::iterator iter = t.getAncestors().begin();
+            vector<int>::iterator iter_end = t.getAncestors().end();
             for (; iter != iter_end; iter++) {
-                std::vector<CB>::iterator iter2 = t.get_intra_cb().begin();
-                std::vector<CB>::iterator iter2_end = t.get_intra_cb().end();
+                vector<CB>::iterator iter2 = t.get_intra_cb().begin();
+                vector<CB>::iterator iter2_end = t.get_intra_cb().end();
                 for (; iter2 != iter2_end; iter2++) {
                     Transition* descendant = getTransition(*iter2);
                     Transition* ancestor = getTransition(i, *iter);
