@@ -126,6 +126,13 @@ public:
             comm == other.comm &&
             stag == other.stag;
     }
+
+    inline bool canSend(const Envelope & recv) const {
+        return isSendType() && recv.isRecvType() &&
+            comm == recv.comm &&
+            dest == recv.src &&
+            (stag == recv.rtag || recv.rtag == WILDCARD);
+    }
 };
 
 std::unique_ptr<Envelope> CreateEnvelope (const char *buffer, int id, int order_id, bool to_expl);
