@@ -289,7 +289,7 @@ bool Node::addNonWildcardReceive(const vector <list <int> > &indices) {
  optional<CB> Node::getMatchingSend(const vector <list <int> > &indices, const CB recv) {
     optional<CB> result;
     auto recv_env = getTransition(recv).getEnvelope();
-    for (auto index : indices[src]) {
+    for (auto index : indices[recv_env.src]) {
         CB snd = CB(recv_env.src, index);
         auto snd_env = getTransition(snd).getEnvelope();
         if (snd_env.canSend(recv_env)) {
