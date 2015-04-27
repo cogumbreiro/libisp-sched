@@ -123,6 +123,16 @@ bool Node::anyAncestorMatched(const CB handle, const vector<int> &ops) const {
     return true;
 }
 
+vector<MPIFunc> Node::asMPIFunc(const vector<list<int> > &indices) const {
+    vector<MPIFunc> result;
+    for (int pid = 0; pid < getNumProcs(); pid++) {
+        for (auto idx : indices[pid]) {
+            CB op = CB(pid, idx);
+            result.push_back(MPIFunc(op, getTransition(op).getEnvelope()));
+        }
+    }
+    return result;
+}
 
 /* This is the exact same as the above, just with OpenMP disabled. */
 /* Note that the use of reverse iterator here is for performance reason
@@ -130,8 +140,8 @@ bool Node::anyAncestorMatched(const CB handle, const vector<int> &ops) const {
  * transition - If we stop using reverse iterator - we need to stop using
  * reverse iterator in GetMatchingSends as well - otherwise we won't
  * be able to preserve the program order matching of receives/sends */
- vector <list<int> > Node::createEnabledTransitions() const {
-    vector <list <int> > result;
+vector<MPIFunc> Node::createEnabledTransitions() const {
+    vector<list<int> > result;
 
     for (int i = 0; i < getNumProcs(); i++) {
         result.push_back (list<int>());
@@ -158,17 +168,7 @@ bool Node::anyAncestorMatched(const CB handle, const vector<int> &ops) const {
             }
         }
     }
-    return result;
-}
-
-vector<MPIFunc> Node::asMPIFunc(const vector<list<int> > &indices) {
-    vector<MPIFunc> result;
-    for (int pid = 0; pid < getNumProcs(); pid++) {
-        for (auto idx : indices[pid]) {
-            CB op = CB(pid, idx);
-            result.push_back(MPIFunc(op, getTransition(op).getEnvelope()));
-        }
-    }
+    return asMPIFunc(result);
 }
 
 void Node::addWaitorTestAmple(const vector<MPIFunc> &funcs) {
@@ -266,6 +266,7 @@ bool Node::addCollectiveAmple(const vector<MPIFunc> &funcs, int collective) {
     return false;
 }
 
+// XXX: move this method to Matcher/InterleavingTree?
 static optional<CB> getMatchingSend(const vector<MPIFunc> &funcs, MPIFunc recv) {
     optional<CB> result;
     /* The use of reverse_iterator here is necessary to preserve program-order
@@ -281,6 +282,7 @@ static optional<CB> getMatchingSend(const vector<MPIFunc> &funcs, MPIFunc recv) 
     return result;
 }
 
+// XXX: move this method to Matcher/InterleavingTree?
 bool Node::addNonWildcardReceive(const vector<MPIFunc> &funcs) {
     for (auto recv : funcs) {
         if (recv.envelope.isRecvType()) {
@@ -315,7 +317,7 @@ vector<list<CB> > Node::createAllMatchingSends(const vector<MPIFunc> &funcs, MPI
 }
 
 // XXX: move this method to Matcher/InterleavingTree?
-void Node::addAllSends (const vector<MPIFunc> &funcs) {
+void Node::addAllSends(const vector<MPIFunc> &funcs) {
     bool first = true;
     for (auto recv : funcs) {
         if (recv.envelope.isRecvType() && recv.envelope.src == WILDCARD) {
@@ -328,114 +330,40 @@ void Node::addAllSends (const vector<MPIFunc> &funcs) {
     }
 }
 
-void Node::getReceiveAmple (vector <list <int> > &l) {
-    if (getNonWildcardReceive (l)) {
+// XXX: move this method to Matcher/InterleavingTree?
+void Node::addReceiveAmple(const vector<MPIFunc> &funcs) {
+    if (addNonWildcardReceive(funcs)) {
         return;
     }
-    GetallSends (l);
+    addAllSends(funcs);
 }
 
-bool Node::getAmpleSet () {
-    if (! ample_set.empty ()) {
+bool Node::createAmpleSet() {
+    if (ample_set.size() > 0) {
         return true;
     }
 
-    getEnabledTransitions (enabled_transitions);
-    /*
-     * See if there is a Barrier set ready to go!
-     */
-    getCollectiveAmple (enabled_transitions, BARRIER);
-    if (! ample_set.empty ())
-        return true;
+    vector<MPIFunc> enabled = createEnabledTransitions();
+    vector<int> collectives = {BARRIER, BCAST, SCATTER, GATHER, SCATTERV,
+            GATHERV, ALLGATHER, ALLGATHERV, ALLTOALL, ALLTOALLV,
+            SCAN, EXSCAN, REDUCE, REDUCE_SCATTER, ALLREDUCE, FINALIZE,
+            CART_CREATE, COMM_CREATE, COMM_DUP, COMM_SPLIT, COMM_FREE};
 
-    getCollectiveAmple (enabled_transitions, BCAST);
-    if (! ample_set.empty ())
-        return true;
+    for (auto collective : collectives) {
+        addCollectiveAmple(enabled, BARRIER);
+        if (ample_set.size() > 0) {
+            return true;
+        }
+    }
 
-
-    getCollectiveAmple (enabled_transitions, SCATTER);
-    if (! ample_set.empty ())
-        return true;
-
-    getCollectiveAmple (enabled_transitions, GATHER);
-    if (! ample_set.empty ())
-        return true;
-
-    getCollectiveAmple (enabled_transitions, SCATTERV);
-    if (! ample_set.empty ())
-        return true;
-
-    getCollectiveAmple (enabled_transitions, GATHERV);
-    if (! ample_set.empty ())
-        return true;
-
-    getCollectiveAmple (enabled_transitions, ALLGATHER);
-    if (! ample_set.empty ())
-        return true;
-
-    getCollectiveAmple (enabled_transitions, ALLGATHERV);
-    if (! ample_set.empty ())
-        return true;
-
-    getCollectiveAmple (enabled_transitions, ALLTOALL);
-    if (! ample_set.empty ())
-        return true;
-
-    getCollectiveAmple (enabled_transitions, ALLTOALLV);
-    if (! ample_set.empty ())
-        return true;
-
-    getCollectiveAmple (enabled_transitions, SCAN);
-    if (! ample_set.empty ())
-        return true;
-
-    getCollectiveAmple (enabled_transitions, EXSCAN);
-    if (! ample_set.empty ())
-        return true;
-
-    getCollectiveAmple (enabled_transitions, REDUCE);
-    if (! ample_set.empty ())
-        return true;
-
-    getCollectiveAmple (enabled_transitions, REDUCE_SCATTER);
-    if (! ample_set.empty ())
-        return true;
-
-    getCollectiveAmple (enabled_transitions, ALLREDUCE);
-    if (! ample_set.empty ())
-        return true;
-
-    getCollectiveAmple (enabled_transitions, FINALIZE);
-    if (! ample_set.empty ())
-        return true;
-
-    getCollectiveAmple (enabled_transitions, CART_CREATE);
-    if (! ample_set.empty ())
-        return true;
-
-    getCollectiveAmple (enabled_transitions, COMM_CREATE);
-    if (! ample_set.empty ())
-        return true;
-
-    getCollectiveAmple (enabled_transitions, COMM_DUP);
-    if (! ample_set.empty ())
-        return true;
-
-    getCollectiveAmple (enabled_transitions, COMM_SPLIT);
-    if (! ample_set.empty ())
-        return true;
-
-    getCollectiveAmple (enabled_transitions, COMM_FREE);
-    if (! ample_set.empty ())
-        return true;
-
-    getWaitorTestAmple (enabled_transitions);
-    if (! ample_set.empty ()) {
+    addWaitorTestAmple(enabled);
+    if (ample_set.size() > 0) {
         return true;
     }
-    getReceiveAmple (enabled_transitions);
-    if (! ample_set.empty ())
+    addReceiveAmple(enabled);
+    if (ample_set.size() > 0) {
         return true;
+    }
 
     /* Special case for Test & Iprobe calls
      * If no call can progress and
@@ -443,37 +371,34 @@ bool Node::getAmpleSet () {
      * Also need to remove the CB edges */
 
     list<CB> test_list;
-    for (int i = 0; i < getNumProcs(); i++) {
-        Transition t = _tlist[i]->_tlist.back();
-        if (t.getEnvelope()->func_id == TEST ||
-            t.getEnvelope()->func_id == TESTALL ||
-            t.getEnvelope()->func_id == TESTANY ||
-            t.getEnvelope()->func_id == IPROBE) {
-            test_list.push_back(CB (i, (int)_tlist[i]->_tlist.size()-1));
+    for (int pid = 0; pid < getNumProcs(); pid++) {
+        auto all = _tlist[pid];
+        int last_id = all->size() - 1;
+        const auto & last = all->get(last_id);
+        if (last.getEnvelope().func_id == TEST ||
+                last.getEnvelope().func_id == TESTALL ||
+                last.getEnvelope().func_id == TESTANY ||
+                last.getEnvelope().func_id == IPROBE) {
+            test_list.push_back(CB(pid, last_id));
 
             //Need to clean up the CB edge here
             //Each of this transition's ancestors will have an edge
             //to each of the transition's descendants
-            vector<int>::iterator iter = t.getAncestors().begin();
-            vector<int>::iterator iter_end = t.getAncestors().end();
-            for (; iter != iter_end; iter++) {
-                vector<CB>::iterator iter2 = t.get_intra_cb().begin();
-                vector<CB>::iterator iter2_end = t.get_intra_cb().end();
-                for (; iter2 != iter2_end; iter2++) {
-                    Transition* descendant = getTransition(*iter2);
-                    Transition* ancestor = getTransition(i, *iter);
-                    descendant->mod_ancestors().push_back(*iter);
-                    ancestor->AddIntraCB(*iter2);
+            for (int anc_id : last.getAncestors()) {
+                for (CB desc : last.getIntraCB()) {
+                    Transition & descendant = getTransition(desc);
+                    CB anc = CB(pid, anc_id);
+                    Transition & ancestor = getTransition(anc);
+                    descendant.addAncestor(anc_id);
+                    ancestor.addIntraCB(desc);
                 }
             }
         }
     }
-    if (!test_list.empty()) {
+    if (test_list.size() > 0) {
         ample_set.push_back(test_list);
-    }
-    if (!ample_set.empty())
         return true;
-
+    }
 
     return false;
 }
