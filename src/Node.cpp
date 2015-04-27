@@ -299,22 +299,22 @@ bool Node::addNonWildcardReceive(const vector<MPIFunc> &funcs) {
     return false;
 }
 
-bool Node::getAllMatchingSends (const vector<MPIFunc> &funcs, MPIFunc &recv,
-                                vector <list <CB> >& ms) {
-    auto & sends = findMatchedSends(c);
+// XXX: move this method to Matcher/InterleavingTree?
+vector<list<CB> > Node::createAllMatchingSends(const vector<MPIFunc> &funcs, MPIFunc &recv) {
+    vector<list<CB> > result;
+    auto & sends = matcher.findMatchedSends(recv.handle);
     for (auto send : reverse(funcs)) {
-        if (recv.canSend(send) && (sends->find(send) == sends->end())) {
+        if (recv.canSend(send) && (sends.find(send.handle) == sends.end())) {
             list <CB> ml;
-            ml.push_back(send);
-            ml.push_back(recv);
-            ms.push_back(ml);
-            return true;
+            ml.push_back(send.handle);
+            ml.push_back(recv.handle);
+            result.push_back(ml);
         }
     }
-    return false;
+    return result;
 }
 
-void Node::getallSends (vector <list <int> > &l) {
+void Node::getallSends (const vector<MPIFunc> &funcs) {
     bool first = false;
 
     for (int i = 0; i < NumProcs (); i++) {
@@ -328,9 +328,6 @@ void Node::getallSends (vector <list <int> > &l) {
                 if (getTransition (i, (*iter))->getEnvelope ()->src == WILDCARD) {
                     CB tempCB(i, *iter);
                     if (getAllMatchingSends (l, tempCB,
-#ifdef CONFIG_OPTIONAL_AMPLE_SET_FIX
-                            Scheduler::_no_ample_set_fix ? ample_set :
-#endif
                             (!first) ? ample_set:other_wc_matches))  {
                         first = true;
                     }
