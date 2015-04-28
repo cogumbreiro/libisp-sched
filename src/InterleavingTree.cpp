@@ -24,9 +24,6 @@ ITree::ITree (Node *n, std::string name) {
     _slist.push_back (n);
     depth = 0;
     have_wildcard = false;
-#ifdef CONFIG_BOUNDED_MIXING
-    expanded = 0;
-#endif
     for (int i = 0; i < n->NumProcs(); i ++) {
         is_matched.push_back (new bool [MAX_TRANSITIONS]());
         is_issued.push_back(new bool [MAX_TRANSITIONS]());
@@ -57,13 +54,13 @@ Node *ITree::GetCurrNode () {
     return _slist[depth];
 }
 
-int ITree::CHECK (/*ServerSocket &sock, */std::list <int> &l) {
+int ITree::CHECK (ServerSocket &sock, std::list <int> &l) {
     bool probe_flag = false;
     int choice = 0; // default is EXP_MODE_LEFT_MOST
     Node *n = GetCurrNode();
     Envelope *env;
     if (n->GetAmpleSet()) {
-      std::list<CB> cbl;
+        std::list<CB> cbl;
 
         // modify the ample set
         if (Scheduler::_fprs) {
@@ -102,7 +99,6 @@ int ITree::CHECK (/*ServerSocket &sock, */std::list <int> &l) {
             }
             cbl = n->ample_set.at(choice);
         }
-
         if (depth >= (int)_slist.size ()-1) {
             Node *n_ = new Node(*n);
             _slist.push_back(n_);
@@ -246,10 +242,22 @@ int ITree::CHECK (/*ServerSocket &sock, */std::list <int> &l) {
         }
     } else {
         sock.ExitMpiProcessAndWait (true);
+
+        if (!Scheduler::_quiet && !Scheduler::_limit_output) {
+            std::cout << "-----------------------------------------" << std::endl;
+            if (n->getTotalMpiCalls() < CONSOLE_OUTPUT_THRESHOLD)
+              std::cout << *n << std::endl;
+
+            std::cout << "No matching MPI call found!" << std::endl;
+            std::cout << "Detected a DEADLOCK in interleaving " <<
+                      Scheduler::interleavings << std::endl;
+            std::cout << "-----------------------------------------" << std::endl;
+        }
         Scheduler::_just_dead_lock = true;
         //exit (1);
         return 1;
     }
+    DR( std::cout << " [CHECK end]\n"; )
     return 0;
 }
 
@@ -314,6 +322,7 @@ size_t ITree::getMaxTlistSize() {
  * recursion.
  */
 bool ITree::FindNonSendWaitPath (bool ** visited, CB &src, CB &dest) {
+
     if (src == dest)
         return true;
     if (src._pid == dest._pid && src._index > dest._index)
@@ -333,6 +342,7 @@ bool ITree::FindNonSendWaitPath (bool ** visited, CB &src, CB &dest) {
 
     /* doing a BFS search */
     worklist.push(src);
+
     while (!worklist.empty()) {
         CB c;
         current = worklist.front();
@@ -360,14 +370,12 @@ bool ITree::FindNonSendWaitPath (bool ** visited, CB &src, CB &dest) {
         iter_end = t.get_inter_cb().end();
         for (; iter != iter_end; iter++) {
             if (findSendOfThisWait(c, *iter)) {
-                //delete c;
                 visited[iter->_pid][iter->_index] = true;
             }
 
             if (!visited[iter->_pid][iter->_index]) {
                 worklist.push(*iter);
                 visited[iter->_pid][iter->_index] = true;
-
             }
         }
     }
@@ -504,7 +512,6 @@ void ITree::AddInterCB () {
             for (it2 = mset.begin(); it2 != it2_end ; it2++) {
                 if (it2 != it1) {
                     GetCurrNode()->GetTransition(*it1)->AddInterCB(*it2);
-
                 }
             }
         }
@@ -522,9 +529,9 @@ bool ITree::NextInterleaving () {
 
     int i = depth+1;
     assert(i == (int) _slist.size());
-
     int oldDepth = depth;
     last_node = GetCurrNode ();
+
     if (Scheduler::_fprs) {
 	    if (Scheduler::_explore_mode == EXP_MODE_RANDOM) return true;
 	    else if (Scheduler::_explore_mode == EXP_MODE_LEFT_MOST) return false;
@@ -542,40 +549,20 @@ bool ITree::NextInterleaving () {
         }
 
         if (!( n->ample_set.empty() && (
-#ifdef CONFIG_OPTIONAL_AMPLE_SET_FIX
-                Scheduler::_no_ample_set_fix ? true :
-#endif
                     (!n->isWildcardNode() ||
                     (n->isWildcardNode() && aux_coenabled_sends[n->wildcard].empty()))))) {
 
-#ifdef CONFIG_BOUNDED_MIXING
-            if (n->isWildcardNode() && Scheduler::_bound &&
-                    !n->expand && expanded < Scheduler::_bound) {
-                n->expand = true;
-                expanded++;
-            }
-            if(Scheduler::_bound && n->expand || !Scheduler::_bound) {
-#endif
                 delete last_node;
                 return true;
-#ifdef CONFIG_BOUNDED_MIXING
-            }
-#endif
         }
 
         /* if ample_set is empty, delete that node */
         if(n->isWildcardNode()) {
-#ifdef CONFIG_BOUNDED_MIXING
-            if(Scheduler::_bound && n->expand) {
-                expanded--;
-            }
-#endif
             matched_sends[n->wildcard].clear();
         }
         if (depth != oldDepth) {
             delete *(_slist.end()-1);
         }
-#endif
         _slist.pop_back ();
         depth--;
         i = (int)_slist.size();
