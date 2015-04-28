@@ -31,8 +31,10 @@ add_library(isp-sched
         src/Transition.cpp src/Transition.hpp
         src/TransitionList.cpp src/TransitionList.hpp
         src/Matcher.hpp
+        src/TransitionMap.hpp
+        src/EnabledTransitionsFactory.cpp src/EnabledTransitionsFactory.hpp
         src/Node.cpp src/Node.hpp
-        #src/InterleavingTree.cpp src/InterleavingTree.hpp
+        src/InterleavingTree.cpp src/InterleavingTree.hpp
         )
 
 target_include_directories(isp-sched PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

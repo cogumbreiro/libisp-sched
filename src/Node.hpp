@@ -33,6 +33,7 @@
 #include "TransitionList.hpp"
 #include "Matcher.hpp"
 #include "TransitionMap.hpp"
+#include "EnabledTransitionsFactory.hpp"
 
 using std::vector;
 using std::list;
@@ -57,7 +58,9 @@ public:
     Node (Node &, bool copyTL);
     ~Node();
 */
-    Node (bool h, const Matcher & m, NTYPE t):has_child(h), matcher(m), type(t) {}
+    Node (bool h, const Matcher & m, NTYPE t):has_child(h), matcher(m), type(t),
+    enabledTransitions(EnabledTransitionsFactory(matcher, transitions))
+    {}
     //Node& operator= (Node &r);
     //Node(const &Matcher matcher) { this->matcher = matcher; }
 
@@ -91,12 +94,13 @@ private:
     int _level;
     int _num_procs;
     const Matcher & matcher;
-
+    const EnabledTransitionsFactory & enabledTransitions;
+    /*
     bool allAncestorsMatched (const MPIFunc c, const vector<int> &l) const;
 
     bool anyAncestorMatched (const MPIFunc c, const vector<int> &l) const;
 
-    vector<MPIFunc> createEnabledTransitions() const;
+    vector<MPIFunc> createEnabledTransitions() const;*/
 
     bool addCollectiveAmple(const vector<MPIFunc> &funcs, int collective);
 
