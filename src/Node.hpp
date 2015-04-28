@@ -57,7 +57,7 @@ public:
     Node (Node &, bool copyTL);
     ~Node();
 */
-    Node (const Matcher & m):has_child (false), matcher(m) {}
+    Node (bool h, const Matcher & m, NTYPE t):has_child(h), matcher(m), type(t) {}
     //Node& operator= (Node &r);
     //Node(const &Matcher matcher) { this->matcher = matcher; }
 
@@ -72,17 +72,16 @@ public:
     void addAllSends (const vector<MPIFunc> &funcs);
     void addReceiveAmple(const vector<MPIFunc> &funcs);
     bool createAmpleSet();
-    void deepCopy();
-
+    vector <list <CB> > ample_set;
+    const bool has_child;
+    const NTYPE type;
+/*
     vector <Node *> children;
     //vector <TransitionList*> _tlist;
-    bool has_child;
     bool has_aux_coenabled_sends;
     bool tlist_dealloc;
     CB wildcard;
-    NTYPE type;
-    vector <list <CB> > ample_set;
-    vector <list <int> > enabled_transitions;
+    vector <list <int> > enabled_transitions;*/
     TransitionMap transitions;
 #ifdef CONFIG_BOUNDED_MIXING
     bool expand;
@@ -92,20 +91,16 @@ private:
     int _level;
     int _num_procs;
     const Matcher & matcher;
-    /*
-    inline const Transition & getTransition(const CB handle) const {
-        return _tlist[handle.pid]->get(handle.index);
-    }
-    inline Transition & getTransition(const CB handle) {
-        return _tlist[handle.pid]->get(handle.index);
-    }*/
+
     bool allAncestorsMatched (const MPIFunc c, const vector<int> &l) const;
+
     bool anyAncestorMatched (const MPIFunc c, const vector<int> &l) const;
+
     vector<MPIFunc> createEnabledTransitions() const;
 
     bool addCollectiveAmple(const vector<MPIFunc> &funcs, int collective);
+
     void addWaitorTestAmple(const vector<MPIFunc> &funcs);
-    //vector<MPIFunc> asMPIFunc(const vector<list<int> > &indices) const;
 };
 
 #endif
