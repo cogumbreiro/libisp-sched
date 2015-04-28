@@ -28,6 +28,80 @@
 using boost::adaptors::reverse;
 using boost::adaptors::indirect;
 
+bool TransitionList::intraCB (const Transition &f, const Transition &s) const {
+    const auto &env_f = f.getEnvelope();
+    const auto &env_s = s.getEnvelope();
+
+    /*
+     * Find Intra-Completes-Before :
+     * 1) Blocking rule
+     */
+    if (env_f.isBlockingType ()) {
+        return true;
+    }
+
+    /*
+     * 2) Send order rule
+     */
+
+    if (env_f.isSendType () &&
+        env_s.isSendType () &&
+        env_f.dest == env_s.dest &&
+        env_f.comm == env_s.comm &&
+        env_f.stag == env_s.stag) {
+        return true;
+    }
+    /*
+     * 3) Recv order rule
+     */
+    if (env_f.isRecvType () &&
+        env_s.isRecvType () &&
+        (env_f.src == env_s.src ||
+         env_f.src == WILDCARD) &&
+        env_f.comm == env_s.comm &&
+        (env_f.rtag == env_s.rtag ||
+         env_f.rtag == WILDCARD)) {
+        return true;
+    }
+
+    /*
+     * 4) iRecv -> Wait order rule
+     */
+    if (env_f.func_id == IRECV &&
+            ((env_s.func_id == WAIT) ||
+             (env_s.func_id == TEST)) &&
+            env_f.count == env_s.count) {
+        return true;
+    }
+
+    if (env_f.func_id == ISEND &&
+            ((env_s.func_id == WAIT) ||
+             (env_s.func_id == TEST)) &&
+            env_f.count == env_s.count) {
+        return true;
+    }
+
+    if (((env_s.func_id == WAITALL) ||
+            (env_s.func_id == WAITANY) ||
+            (env_s.func_id == TESTANY) ||
+            (env_s.func_id == TESTALL) ) &&
+            (env_f.func_id == IRECV ||
+             env_f.func_id == ISEND)) {
+
+        for (int i = 0 ; i < env_s.count ; i++) {
+            if (env_s.req_procs[i] == env_f.index) {
+                return true;
+            }
+        }
+    }
+
+    if (env_s.func_id == FINALIZE) {
+        return true;
+    }
+
+    return false;
+}
+
 bool TransitionList::addTransition(std::unique_ptr<Transition> t) {
     auto & env_t = t->getEnvelope();
     const int index = env_t.index;
@@ -39,7 +113,7 @@ bool TransitionList::addTransition(std::unique_ptr<Transition> t) {
     // otherwise append to the list
     tlist.push_back(std::move(t));
     auto & trans = tlist.back();
-    const CB last_op(id, size()-1);
+    const CB last_op(pid, size()-1);
 
     bool blocking_flag = false;
 

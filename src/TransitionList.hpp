@@ -42,9 +42,14 @@ using boost::make_indirect_iterator;
 class TransitionList {
 
 public:
-    inline int getId() const { return id; }
+    const int pid;
+
+    TransitionList(int p) : pid(p) {}
+
     inline unsigned int size() const { return tlist.size(); }
+
     inline Transition & get(int index) const { return *tlist[index]; }
+
     bool addTransition (unique_ptr<Transition> t);
 
     inline indirect_iterator<vector<unique_ptr<Transition> >::iterator> begin () {
@@ -65,82 +70,10 @@ public:
 
 private:
     std::vector<std::unique_ptr<Transition> > tlist;
+
     std::list<int> ulist;
-    int id;
-    inline bool intraCB (const Transition &f, const Transition &s) const {
-        const auto &env_f = f.getEnvelope();
-        const auto &env_s = s.getEnvelope();
 
-        /*
-         * Find Intra-Completes-Before :
-         * 1) Blocking rule
-         */
-        if (env_f.isBlockingType ()) {
-            return true;
-        }
-
-        /*
-         * 2) Send order rule
-         */
-
-        if (env_f.isSendType () &&
-            env_s.isSendType () &&
-            env_f.dest == env_s.dest &&
-            env_f.comm == env_s.comm &&
-            env_f.stag == env_s.stag) {
-            return true;
-        }
-        /*
-         * 3) Recv order rule
-         */
-        if (env_f.isRecvType () &&
-            env_s.isRecvType () &&
-            (env_f.src == env_s.src ||
-             env_f.src == WILDCARD) &&
-            env_f.comm == env_s.comm &&
-            (env_f.rtag == env_s.rtag ||
-             env_f.rtag == WILDCARD)) {
-            return true;
-        }
-
-        /*
-         * 4) iRecv -> Wait order rule
-         */
-        if (env_f.func_id == IRECV &&
-                ((env_s.func_id == WAIT) ||
-                 (env_s.func_id == TEST)) &&
-                env_f.count == env_s.count) {
-            return true;
-        }
-
-        if (env_f.func_id == ISEND &&
-                ((env_s.func_id == WAIT) ||
-                 (env_s.func_id == TEST)) &&
-                env_f.count == env_s.count) {
-            return true;
-        }
-
-        if (((env_s.func_id == WAITALL) ||
-                (env_s.func_id == WAITANY) ||
-                (env_s.func_id == TESTANY) ||
-                (env_s.func_id == TESTALL) ) &&
-                (env_f.func_id == IRECV ||
-                 env_f.func_id == ISEND)) {
-
-            for (int i = 0 ; i < env_s.count ; i++) {
-                if (env_s.req_procs[i] == env_f.index) {
-                    return true;
-                }
-            }
-        }
-
-        if (env_s.func_id == FINALIZE) {
-            return true;
-        }
-
-        return false;
-    }
-
+    bool intraCB (const Transition &f, const Transition &s) const;
 };
 
 #endif
