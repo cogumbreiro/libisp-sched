@@ -19,7 +19,6 @@
 #include "Node.hpp"
 
 ITree::ITree (Node *n, std::string name) {
-
     pname = name;
     _slist.push_back (n);
     depth = 0;
@@ -147,22 +146,22 @@ int ITree::CHECK (ServerSocket &sock, std::list <int> &l) {
 
         //Check if the data types match CGD
         if (n->GetTransition(cbl.front())->GetEnvelope()->isSendType ()){
-					int currType = n->GetTransition(cbl.front())->GetEnvelope()->data_type;
-					int matchType = n->GetTransition(cbl.back())->GetEnvelope()->data_type;
-					if(currType == matchType){
-						n->GetTransition(cbl.front())->GetEnvelope()->typesMatch = true;
-						n->GetTransition(cbl.back())->GetEnvelope()->typesMatch = true;
-					}else{
-						n->GetTransition(cbl.front())->GetEnvelope()->typesMatch = false;
-						n->GetTransition(cbl.back())->GetEnvelope()->typesMatch = false;
+			int currType = n->GetTransition(cbl.front())->GetEnvelope()->data_type;
+			int matchType = n->GetTransition(cbl.back())->GetEnvelope()->data_type;
+			if(currType == matchType){
+				n->GetTransition(cbl.front())->GetEnvelope()->typesMatch = true;
+				n->GetTransition(cbl.back())->GetEnvelope()->typesMatch = true;
+			}else{
+				n->GetTransition(cbl.front())->GetEnvelope()->typesMatch = false;
+				n->GetTransition(cbl.back())->GetEnvelope()->typesMatch = false;
 
-						Envelope *env = n->GetTransition(cbl.front())->GetEnvelope ();
-						Scheduler::_mismatchLog << env->filename << " "
-											    << env->linenumber << std::endl;
-						env = n->GetTransition(cbl.back())->GetEnvelope ();
-						Scheduler::_mismatchLog << env->filename << " "
-										        << env->linenumber << std::endl;
-					}
+				Envelope *env = n->GetTransition(cbl.front())->GetEnvelope ();
+				Scheduler::_mismatchLog << env->filename << " "
+									    << env->linenumber << std::endl;
+				env = n->GetTransition(cbl.back())->GetEnvelope ();
+				Scheduler::_mismatchLog << env->filename << " "
+								        << env->linenumber << std::endl;
+			}
         }
         else if(n->GetTransition(cbl.front())->GetEnvelope()->data_type == -1){
         	Envelope *env = n->GetTransition(cbl.front())->GetEnvelope();
@@ -257,7 +256,6 @@ int ITree::CHECK (ServerSocket &sock, std::list <int> &l) {
         //exit (1);
         return 1;
     }
-    DR( std::cout << " [CHECK end]\n"; )
     return 0;
 }
 
