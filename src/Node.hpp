@@ -53,16 +53,16 @@ public:
     Node (bool h, const Matcher & m, NTYPE t):/*has_child(h),*/ matcher(m), /*type(t),*/
     enabledTransitions(EnabledTransitions(matcher, transitions))
     {}
+    inline int getNumProcs () const { return transitions.num_procs; }
     /*
-    inline int getNumProcs () const { return _num_procs; }
     inline int getLevel () const { return _level; }*/
     /*
     inline bool isWildcardNode() const {
         return type == WILDCARD_RECV_NODE || type == WILDCARD_PROBE_NODE;
     }*/
     //int getTotalMpiCalls() const;
-    vector<vector<CB> > createAmpleSet();
-    vector <list <CB> > ample_set;/*
+    vector<vector<CB> > buildAmpleSet();
+    /*
     const bool has_child;
     const NTYPE type;
 */

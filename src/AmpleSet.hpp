@@ -61,10 +61,9 @@ private:
     bool genAllSends();
 };
 
-inline vector<vector<CB> > createAmpleSet(TransitionMap & transitions,
-        const Matcher & matcher,
-        const vector<MPIFunc> & enabled) {
-    return AmpleSet.create(transitions, matcher, enabled);
+inline vector<vector<CB> > createAmpleSet(TransitionMap & t, const Matcher & m,
+        const vector<MPIFunc> & f) {
+    return AmpleSet(t, m, f).create();
 }
 
 #endif

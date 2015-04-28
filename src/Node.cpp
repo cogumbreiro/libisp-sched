@@ -21,6 +21,7 @@
 using boost::adaptors::reverse;
 using std::list;
 using std::vector;
+
 /*
 Node::Node (int num_procs) : has_child (false), _level(0),
         _num_procs(num_procs) {
@@ -44,8 +45,7 @@ int Node::getTotalMpiCalls() const {
     return sum;
 }*/
 
-// XXX: move out of here
-vector<vector<CB> > Node::createAmpleSet() {
+vector<vector<CB> > Node::buildAmpleSet() {
     auto enabled = enabledTransitions.create();
-    return AmpleSet(matcher, transitions, enabled).create();
+    return createAmpleSet(transitions, matcher, enabled);
 }
