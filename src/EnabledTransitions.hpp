@@ -1,11 +1,11 @@
-#ifndef _ENABLED_TRANSITIONS_FACTORY_HPP
-#define _ENABLED_TRANSITIONS_FACTORY_HPP
+#ifndef _ENABLED_TRANSITIONS_HPP
+#define _ENABLED_TRANSITIONS_HPP
 
 #include "Matcher.hpp"
 #include "TransitionMap.hpp"
 
-struct EnabledTransitionsFactory {
-    EnabledTransitionsFactory(const Matcher & m, const TransitionMap & t) :
+struct EnabledTransitions {
+    EnabledTransitions(const Matcher & m, const TransitionMap & t) :
     matcher(m), transitions(t) {}
     vector<MPIFunc> create() const;
 private:

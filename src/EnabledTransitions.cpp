@@ -1,6 +1,6 @@
-#include "EnabledTransitionsFactory.hpp"
+#include "EnabledTransitions.hpp"
 
-bool EnabledTransitionsFactory::allAncestorsMatched(const MPIFunc func, const vector <int> &indices) const {
+bool EnabledTransitions::allAncestorsMatched(const MPIFunc func, const vector <int> &indices) const {
     bool is_wait_or_test_type = func.envelope.isWaitorTestType();
     auto pid = func.handle.pid;
     for (auto curr : indices) {
@@ -35,7 +35,7 @@ bool EnabledTransitionsFactory::allAncestorsMatched(const MPIFunc func, const ve
     return true;
 }
 
-bool EnabledTransitionsFactory::anyAncestorMatched (const MPIFunc func, const vector <int> &indices) const {
+bool EnabledTransitions::anyAncestorMatched (const MPIFunc func, const vector <int> &indices) const {
     bool any_match = false;
 
     bool is_wait_or_test_type = func.envelope.isWaitorTestType();
@@ -71,7 +71,7 @@ bool EnabledTransitionsFactory::anyAncestorMatched (const MPIFunc func, const ve
  * transition - If we stop using reverse iterator - we need to stop using
  * reverse iterator in GetMatchingSends as well - otherwise we won't
  * be able to preserve the program order matching of receives/sends */
-vector<MPIFunc> EnabledTransitionsFactory::create() const {
+vector<MPIFunc> EnabledTransitions::create() const {
     vector<MPIFunc> result;
 
     for (auto funcs : transitions.generateMPIFuncs()) {
