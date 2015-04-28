@@ -1,5 +1,10 @@
 #ifndef _MATCHER_HPP
 #define _MATCHER_HPP
+
+#include <set>
+
+#include "CB.hpp"
+
 class Matcher {
 public:
   virtual ~Matcher(){}
