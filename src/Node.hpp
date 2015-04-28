@@ -33,7 +33,8 @@
 #include "TransitionList.hpp"
 #include "Matcher.hpp"
 #include "TransitionMap.hpp"
-#include "EnabledTransitionsFactory.hpp"
+#include "EnabledTransitions.hpp"
+#include "AmpleSet.hpp"
 
 using std::vector;
 using std::list;
@@ -49,35 +50,22 @@ enum NTYPE {
 class Node {
 
 public:
-//    Node ();
-//    Node (int num_procs);
-    /*
-     * Assignment Operator
-     *//*
-    Node (Node &);
-    Node (Node &, bool copyTL);
-    ~Node();
-*/
-    Node (bool h, const Matcher & m, NTYPE t):has_child(h), matcher(m), type(t),
-    enabledTransitions(EnabledTransitionsFactory(matcher, transitions))
+    Node (bool h, const Matcher & m, NTYPE t):/*has_child(h),*/ matcher(m), /*type(t),*/
+    enabledTransitions(EnabledTransitions(matcher, transitions))
     {}
-    //Node& operator= (Node &r);
-    //Node(const &Matcher matcher) { this->matcher = matcher; }
-
+    /*
     inline int getNumProcs () const { return _num_procs; }
-    inline int getLevel () const { return _level; }
+    inline int getLevel () const { return _level; }*/
+    /*
     inline bool isWildcardNode() const {
         return type == WILDCARD_RECV_NODE || type == WILDCARD_PROBE_NODE;
-    }
-    int getTotalMpiCalls() const;
-    bool addNonWildcardReceive(const vector<MPIFunc> &funcs);
-    vector<list<CB> > createAllMatchingSends(const vector<MPIFunc> &funcs, MPIFunc &recv);
-    void addAllSends (const vector<MPIFunc> &funcs);
-    void addReceiveAmple(const vector<MPIFunc> &funcs);
-    bool createAmpleSet();
-    vector <list <CB> > ample_set;
+    }*/
+    //int getTotalMpiCalls() const;
+    vector<vector<CB> > createAmpleSet();
+    vector <list <CB> > ample_set;/*
     const bool has_child;
     const NTYPE type;
+*/
 /*
     vector <Node *> children;
     //vector <TransitionList*> _tlist;
@@ -85,26 +73,14 @@ public:
     bool tlist_dealloc;
     CB wildcard;
     vector <list <int> > enabled_transitions;*/
-    TransitionMap transitions;
-#ifdef CONFIG_BOUNDED_MIXING
-    bool expand;
-#endif
 
 private:
-    int _level;
-    int _num_procs;
+    TransitionMap transitions;
+//    int _level;
+//    int _num_procs;
     const Matcher & matcher;
-    const EnabledTransitionsFactory & enabledTransitions;
-    /*
-    bool allAncestorsMatched (const MPIFunc c, const vector<int> &l) const;
 
-    bool anyAncestorMatched (const MPIFunc c, const vector<int> &l) const;
-
-    vector<MPIFunc> createEnabledTransitions() const;*/
-
-    bool addCollectiveAmple(const vector<MPIFunc> &funcs, int collective);
-
-    void addWaitorTestAmple(const vector<MPIFunc> &funcs);
+    const EnabledTransitions & enabledTransitions;
 };
 
 #endif

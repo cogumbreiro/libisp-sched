@@ -32,7 +32,8 @@ add_library(isp-sched
         src/TransitionList.cpp src/TransitionList.hpp
         src/Matcher.hpp
         src/TransitionMap.hpp
-        src/EnabledTransitionsFactory.cpp src/EnabledTransitionsFactory.hpp
+        src/EnabledTransitions.cpp src/EnabledTransitions.hpp
+        src/AmpleSet.cpp src/AmpleSet.hpp
         src/Node.cpp src/Node.hpp
         src/InterleavingTree.cpp src/InterleavingTree.hpp
         )
