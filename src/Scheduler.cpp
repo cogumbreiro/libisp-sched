@@ -146,7 +146,7 @@ void Scheduler::SetParams (std::string port, std::string num_clients,
     _env_only = env_only;
     _batch_mode = batch_mode;
     _stop_at_deadlock = stop_at_deadlock;
-    _explore_mode = explore_mode; 
+    _explore_mode = explore_mode;
     _explore_some = explore_some;
     _explore_all = explore_all;
     _explore_random = explore_random;
@@ -159,7 +159,7 @@ void Scheduler::SetParams (std::string port, std::string num_clients,
     _fprs = fprs;
 /* == fprs end == */
 
-    /* open the logfile for writing */    
+    /* open the logfile for writing */
     _logfile.open (logfile.c_str());
     if (logfile != "" && ! _logfile.is_open()) {
         if (!quiet) {
@@ -380,7 +380,7 @@ void Scheduler::StartClients () {
 
 int Scheduler::Restart () {
     int result;
-    
+
     ServerSocket::Restart ();
     StartClients ();
     if ((result = Accept ()) != 0) {
@@ -439,7 +439,7 @@ void Scheduler::StartMC () {
         }
 #endif
         it->GetCurrNode ()->PrintLog ();
-        
+
         //CGD print Mismatched Types
 /* == fprs start == */
         //if (_fprs == false) {
@@ -451,7 +451,7 @@ void Scheduler::StartMC () {
           Scheduler::_logfile << Scheduler::interleavings << " DEADLOCK\n";
           Scheduler::_just_dead_lock = false;
           Scheduler::_deadlock_found = true;
-        }        
+        }
         bool outputused = false;
         std::stringstream outputmsg;
         outputmsg << "-----------------------------------------" << std::endl;
@@ -516,12 +516,12 @@ void Scheduler::StartMC () {
                 else if (Scheduler::_explore_mode == EXP_MODE_LEFT_MOST)
                   explore_mode = "First Available Choice";
 
-                if (Scheduler::_deadlock_found) 
+                if (Scheduler::_deadlock_found)
                     outputmsg << "ISP detected deadlock!!!" << std::endl;
                 else
                     outputmsg << "ISP detected no deadlocks!" << std::endl;
 
-                outputmsg << "Total Explored Interleavings: " << interleavings << std::endl;                
+                outputmsg << "Total Explored Interleavings: " << interleavings << std::endl;
                 outputmsg << "Interleaving Exploration Mode: " << explore_mode << std::endl;
                 outputmsg << "-----------------------------------------" << std::endl;
                 std::cout << outputmsg.str();
@@ -549,23 +549,20 @@ void Scheduler::generateFirstInterleaving () {
     int nprocs = count;
 
     while (count) {
-
-        for (int  i = 0 ; i < nprocs; i++) {
+        for (int i = 0 ; i < nprocs; i++) {
             if (_runQ[i]->_read_next_env) {
-                
                 t = getTransition(i);
-/* == fprs begin == */    
-// IMPORTANT NOTE: the constant ISP_START_SAMPLING and ISP_END_SAMPLEING here should be corresponded to the ISP_START_SAMPLING and ISP_END_SAMPLING defined in isp.h
-            if (_fprs) {        
-                if (t->GetEnvelope()->func_id == PCONTROL && t->GetEnvelope()->stag == ISP_START_SAMPLING) {
-                    it->_is_exall_mode[i] = true;
+                // IMPORTANT NOTE: the constant ISP_START_SAMPLING and
+                // ISP_END_SAMPLEING here should be corresponded to the
+                // ISP_START_SAMPLING and ISP_END_SAMPLING defined in isp.h
+                if (_fprs) {
+                    if (t->GetEnvelope()->func_id == PCONTROL && t->GetEnvelope()->stag == ISP_START_SAMPLING) {
+                        it->_is_exall_mode[i] = true;
+                    }
+                    if (t->GetEnvelope()->func_id == PCONTROL && t->GetEnvelope()->stag == ISP_END_SAMPLING) {
+                        it->_is_exall_mode[i] = false;
+                    }
                 }
-                if (t->GetEnvelope()->func_id == PCONTROL && t->GetEnvelope()->stag == ISP_END_SAMPLING) {
-                    it->_is_exall_mode[i] = false;
-                }
-            }
-/* == fprs end == */
-                //DS( std::cout << " [generateFirstInterleaving 1] e=" << t->GetEnvelope() << " e->func_id=" << t->GetEnvelope()->func_id << "\n"; )
                 if (!(it->GetCurrNode ())->_tlist[i]->AddTransition (t)) {
                     ExitMpiProcessAndWait (true);
 
@@ -580,8 +577,6 @@ void Scheduler::generateFirstInterleaving () {
                     exit (21);
                 }
 
-                //DS( std::cout << " [generateFirstInterleaving 2] e=" << t->GetEnvelope() << " e->func_id=" << t->GetEnvelope()->func_id << "\n"; )
-
                 /* Some memory leak can happen here if we're not in
                    the first interleaving. T has a "NEW" envelope
                    which is never freed When this leak is fixed,
@@ -592,8 +587,6 @@ void Scheduler::generateFirstInterleaving () {
                     _runQ[i]->_read_next_env = false;
                 }
                 if (t->GetEnvelope ()->func_id == FINALIZE) {
-                    //std::cout << "setting no more read for " << i <<
-                    //"\n";
                     _runQ[i]->_read_next_env = false;
                     count--;
                 }
@@ -603,7 +596,6 @@ void Scheduler::generateFirstInterleaving () {
         std::list <int> l;
         std::list <int>::iterator iter;
         std::list <int>::iterator iter_end;
-        //[grz] would and 'if' be enough here?
         while (!hasMoreEnvelopeToRead ()) {
             if (it->CHECK (*this, l) == 1)
                 return;
@@ -622,17 +614,14 @@ void Scheduler::generateFirstInterleaving () {
             } else {
                 for (iter = l.begin (); iter != iter_end; iter++) {
                     _runQ[*iter]->_read_next_env = true;
-                    
+
                 }
             }
         }
 
     }
     // Reached and of interleaving without any deadlocks - update InterCB
-#ifdef CONFIG_OPTIONAL_AMPLE_SET_FIX
-    if(!Scheduler::_no_ample_set_fix)
-#endif
-        it->ProcessInterleaving();
+    it->ProcessInterleaving();
 }
 
 bool Scheduler::hasMoreEnvelopeToRead () {
@@ -649,8 +638,8 @@ Transition *Scheduler::getTransition (int id) {
 
     Envelope *e = NULL;
     char    buffer[BUFFER_SIZE];
-   
-    do { 
+
+    do {
         memset(buffer, '\0', BUFFER_SIZE);
         Receive (id, buffer, BUFFER_SIZE);
 
