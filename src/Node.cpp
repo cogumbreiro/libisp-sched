@@ -35,23 +35,22 @@ Node::Node (int num_procs) : has_child (false), _level(0),
     }
 }
 */
-
+/*
 int Node::getTotalMpiCalls() const {
     int sum = 0;
     for (auto & trans : _tlist) {
       sum += trans->size();
     }
     return sum;
-}
+}*/
 
 // XXX: bundle with createEnabledTransitions
-bool Node::allAncestorsMatched (const CB handle, const vector <int> &indices) const {
-    bool is_wait_or_test_type = getTransition(handle).getEnvelope().isWaitorTestType();
-    auto pid = handle.pid;
-    auto & pid_transitions = _tlist[pid];
+bool Node::allAncestorsMatched(const MPIFunc func, const vector <int> &indices) const {
+    bool is_wait_or_test_type = func.envelope.isWaitorTestType();
+    auto pid = func.handle.pid;
     for (auto curr : indices) {
         auto curr_handle = CB(pid, curr);
-        auto & curr_trans = getTransition(curr_handle);
+        auto & curr_trans = transitions.get(curr_handle);
         auto curr_env = curr_trans.getEnvelope();
         auto curr_func = curr_env.func_id;
         if (!matcher.isMatched(curr_handle)) {
@@ -71,7 +70,7 @@ bool Node::allAncestorsMatched (const CB handle, const vector <int> &indices) co
 
             for (auto anc_id : curr_trans.getAncestors()) {
                 auto anc = CB(pid, anc_id);
-                auto & anc_env = getTransition(anc).getEnvelope();
+                auto & anc_env = transitions.getEnvelope(anc);
                 if (!matcher.isMatched(anc) && curr_env.matchSend(anc_env)) {
                     return false;
                 }
@@ -82,29 +81,29 @@ bool Node::allAncestorsMatched (const CB handle, const vector <int> &indices) co
 }
 
 // XXX: bundle with createEnabledTransitions
-bool Node::anyAncestorMatched(const CB handle, const vector<int> &ops) const {
+bool Node::anyAncestorMatched (const MPIFunc func, const vector <int> &indices) const {
     bool any_match = false;
 
-    auto env = getTransition(handle).getEnvelope ();
-    bool is_wait_or_test_type = env.isWaitorTestType();
-    if (is_wait_or_test_type && ops.size() == 0) {
+    bool is_wait_or_test_type = func.envelope.isWaitorTestType();
+    if (is_wait_or_test_type && indices.size() == 0) {
         return true;
     }
-    vector<int> filtered = ops;
-    for (auto op : env.req_procs) {
-        auto req = CB(handle.pid, op);
+    vector<int> filtered = indices;
+    for (auto idx : func.envelope.req_procs) {
+        auto req = CB(func.handle.pid, idx);
         if (matcher.isMatched(req) ||
                 (is_wait_or_test_type && /*!Scheduler::_send_block &&*/
-                    getTransition(req).getEnvelope().func_id == ISEND)) {
+                    transitions.getEnvelope(req).func_id == ISEND)) {
             any_match = true;
         }
-        filtered.erase(std::remove(filtered.begin(), filtered.end(), op), filtered.end());
+        filtered.erase(std::remove(filtered.begin(), filtered.end(), idx), filtered.end());
     }
     if (!any_match) {
         return false;
     }
+    int pid = func.handle.pid;
     for (auto id : filtered) {
-        auto op = CB(handle.pid, id);
+        auto op = CB(pid, id);
         if(!matcher.isMatched(op)) {
             return false;
         }
@@ -113,53 +112,36 @@ bool Node::anyAncestorMatched(const CB handle, const vector<int> &ops) const {
     return true;
 }
 
-// XXX: bundle with createEnabledTransitions
-vector<MPIFunc> Node::asMPIFunc(const vector<list<int> > &indices) const {
-    vector<MPIFunc> result;
-    for (int pid = 0; pid < getNumProcs(); pid++) {
-        for (auto idx : indices[pid]) {
-            CB op = CB(pid, idx);
-            result.push_back(MPIFunc(op, getTransition(op).getEnvelope()));
-        }
-    }
-    return result;
-}
-
-/* This is the exact same as the above, just with OpenMP disabled. */
 /* Note that the use of reverse iterator here is for performance reason
  * so that we can break off the loop when we hit the last_matched
  * transition - If we stop using reverse iterator - we need to stop using
  * reverse iterator in GetMatchingSends as well - otherwise we won't
  * be able to preserve the program order matching of receives/sends */
 vector<MPIFunc> Node::createEnabledTransitions() const {
-    vector<list<int> > result;
+    vector<MPIFunc> result;
 
-    for (int i = 0; i < getNumProcs(); i++) {
-        result.push_back (list<int>());
-    }
-
-    for (int pid = 0 ; pid < getNumProcs(); pid++) {
-        int op = _tlist[pid]->size() - 1;
-        for (Transition & trans : *_tlist[pid]) {
-            CB h(pid,op);
-            if (!matcher.isMatched(h)) {
-                vector<int> ancestors(getTransition(h).getAncestors());
-                const auto func_name = trans.getEnvelope().func_id;
+    for (auto funcs : transitions.generateMPIFuncs()) {
+        int last = funcs.size() - 1;
+        for (auto func : reverse(funcs)) {
+            auto pid = func.handle.pid;
+            if (!matcher.isMatched(func.handle)) {
+                vector<int> ancestors(transitions.get(func.handle).getAncestors());
+                const auto func_name = func.envelope.func_id;
                 if ((func_name != WAITANY && func_name != TESTANY) &&
-                        allAncestorsMatched(h, ancestors)) {
-                    result[pid].push_back(op);
+                        allAncestorsMatched(func, ancestors)) {
+                    result.push_back(func);
                 } else if ((func_name == WAITANY || func_name == TESTANY) &&
-                        anyAncestorMatched(h, ancestors)) {
-                    result[pid].push_back(op);
+                        anyAncestorMatched(func, ancestors)) {
+                    result.push_back(func);
                 }
             }
-            op--;
-            if (op <= matcher.findLastMatched(pid)) {
+            last--;
+            if (last <= matcher.findLastMatched(pid)) {
                 break;
             }
         }
     }
-    return asMPIFunc(result);
+    return result;
 }
 
 // XXX: move out of here
@@ -216,7 +198,7 @@ bool Node::addCollectiveAmple(const vector<MPIFunc> &funcs, int collective) {
             for (auto func2 : flist) {
                 int other_root = func2.envelope.count;
                 if (root != other_root) {
-                    flist.clear ();
+                    flist.clear();
                     return false;
                 }
             }
@@ -344,7 +326,8 @@ bool Node::createAmpleSet() {
         return true;
     }
 
-    vector<MPIFunc> enabled = createEnabledTransitions();
+    auto enabled = createEnabledTransitions();
+
     vector<int> collectives = {BARRIER, BCAST, SCATTER, GATHER, SCATTERV,
             GATHERV, ALLGATHER, ALLGATHERV, ALLTOALL, ALLTOALLV,
             SCAN, EXSCAN, REDUCE, REDUCE_SCATTER, ALLREDUCE, FINALIZE,
@@ -373,23 +356,22 @@ bool Node::createAmpleSet() {
 
     list<CB> test_list;
     for (int pid = 0; pid < getNumProcs(); pid++) {
-        auto all = _tlist[pid];
-        int last_id = all->size() - 1;
-        const auto & last = all->get(last_id);
+        auto last_handle = transitions.getLastHandle(pid);
+        const auto & last = transitions.get(last_handle);
         if (last.getEnvelope().func_id == TEST ||
                 last.getEnvelope().func_id == TESTALL ||
                 last.getEnvelope().func_id == TESTANY ||
                 last.getEnvelope().func_id == IPROBE) {
-            test_list.push_back(CB(pid, last_id));
+            test_list.push_back(last_handle);
 
             //Need to clean up the CB edge here
             //Each of this transition's ancestors will have an edge
             //to each of the transition's descendants
             for (int anc_id : last.getAncestors()) {
                 for (CB desc : last.getIntraCB()) {
-                    Transition & descendant = getTransition(desc);
+                    Transition & descendant = transitions.get(desc);
                     CB anc = CB(pid, anc_id);
-                    Transition & ancestor = getTransition(anc);
+                    Transition & ancestor = transitions.get(anc);
                     descendant.addAncestor(anc_id);
                     ancestor.addIntraCB(desc);
                 }

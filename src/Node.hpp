@@ -32,6 +32,7 @@
 
 #include "TransitionList.hpp"
 #include "Matcher.hpp"
+#include "TransitionMap.hpp"
 
 using std::vector;
 using std::list;
@@ -42,17 +43,6 @@ enum NTYPE {
     WILDCARD_RECV_NODE,
     WILDCARD_PROBE_NODE,
     DEADLOCK_NODE
-};
-
-struct MPIFunc {
-    MPIFunc(CB h, Envelope & e) : handle(h), envelope(e) {}
-    CB handle;
-    Envelope & envelope;
-
-    inline bool canSend(MPIFunc & recv) {
-        return handle.pid == recv.envelope.src &&
-                envelope.canSend(recv.envelope);
-    }
 };
 
 class Node {
@@ -77,11 +67,6 @@ public:
         return type == WILDCARD_RECV_NODE || type == WILDCARD_PROBE_NODE;
     }
     int getTotalMpiCalls() const;
-    bool allAncestorsMatched (const CB c, const vector<int> &l) const;
-    bool anyAncestorMatched (const CB c, const vector<int> &l) const;
-    vector<MPIFunc> createEnabledTransitions() const;
-    bool addCollectiveAmple (const vector<MPIFunc> &funcs, int collective);
-    void addWaitorTestAmple(const vector<MPIFunc> &funcs);
     bool addNonWildcardReceive(const vector<MPIFunc> &funcs);
     vector<list<CB> > createAllMatchingSends(const vector<MPIFunc> &funcs, MPIFunc &recv);
     void addAllSends (const vector<MPIFunc> &funcs);
@@ -90,7 +75,7 @@ public:
     void deepCopy();
 
     vector <Node *> children;
-    vector <TransitionList*> _tlist;
+    //vector <TransitionList*> _tlist;
     bool has_child;
     bool has_aux_coenabled_sends;
     bool tlist_dealloc;
@@ -98,6 +83,7 @@ public:
     NTYPE type;
     vector <list <CB> > ample_set;
     vector <list <int> > enabled_transitions;
+    TransitionMap transitions;
 #ifdef CONFIG_BOUNDED_MIXING
     bool expand;
 #endif
@@ -106,13 +92,20 @@ private:
     int _level;
     int _num_procs;
     const Matcher & matcher;
+    /*
     inline const Transition & getTransition(const CB handle) const {
         return _tlist[handle.pid]->get(handle.index);
     }
     inline Transition & getTransition(const CB handle) {
         return _tlist[handle.pid]->get(handle.index);
-    }
-    vector<MPIFunc> asMPIFunc(const vector<list<int> > &indices) const;
+    }*/
+    bool allAncestorsMatched (const MPIFunc c, const vector<int> &l) const;
+    bool anyAncestorMatched (const MPIFunc c, const vector<int> &l) const;
+    vector<MPIFunc> createEnabledTransitions() const;
+
+    bool addCollectiveAmple(const vector<MPIFunc> &funcs, int collective);
+    void addWaitorTestAmple(const vector<MPIFunc> &funcs);
+    //vector<MPIFunc> asMPIFunc(const vector<list<int> > &indices) const;
 };
 
 #endif
