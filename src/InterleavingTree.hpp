@@ -43,6 +43,7 @@ public:
     int* last_matched;
     std::map <CB, std::list <CB> > aux_coenabled_sends;
     std::map <CB, std::set <CB> > matched_sends;
+    bool fprs = true;
 #ifdef CONFIG_BOUNDED_MIXING
     unsigned expanded;
 #endif
