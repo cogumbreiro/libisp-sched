@@ -21,13 +21,10 @@
 #ifndef _ENVELOPE_HPP
 #define _ENVELOPE_HPP
 
-#include "name2id.hpp"
-#include <iostream>
 #include <vector>
-#include <memory>
+#include "name2id.hpp"
 
 using std::string;
-using std::unique_ptr;
 
 #define WILDCARD (-1)
 
@@ -66,7 +63,15 @@ public:
     unsigned int        ref;
     bool in_exall;
 
-    inline void Issued () {
+    bool operator==(const Envelope &) const;
+
+    bool operator!=(const Envelope &) const;
+
+    Envelope();
+
+    Envelope(const Envelope &e);
+
+    inline void issue() {
         static int issue_number = 0;
         issue_id = ++issue_number;
     }
@@ -108,11 +113,6 @@ public:
                 );
     }
 
-    bool operator==(const Envelope &) const;
-    bool operator!=(const Envelope &) const;
-    Envelope();
-    Envelope(const Envelope &e);
-
     inline bool matchRecv(const Envelope & other) const {
         return isRecvType() &&
             other.isRecvType() &&
@@ -135,7 +135,4 @@ public:
             (stag == recv.rtag || recv.rtag == WILDCARD);
     }
 };
-
-unique_ptr<Envelope> CreateEnvelope (const char *buffer, int id, int order_id, bool to_expl);
-
 #endif

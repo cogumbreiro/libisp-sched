@@ -10,14 +10,6 @@
  * See LICENSE for licensing information
  */
 
-/*
- * ISP: MPI Dynamic Verification Tool
- *
- * File:        InterleavingTree.cpp
- * Description: Implements ISP's POE algorithm
- * Contact:     isp-dev@cs.utah.edu
- */
-
 #include <sstream>
 #include <map>
 #include <queue>

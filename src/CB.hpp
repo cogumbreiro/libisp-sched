@@ -10,32 +10,18 @@
  * See LICENSE for licensing information
  */
 
-/*
- * ISP: MPI Dynamic Verification Tool
- *
- * File:        Transition.hpp
- * Description: Implements handling of a single transition in an interleaving
- * Contact:     isp-dev@cs.utah.edu
- */
-
 #ifndef _CB_HPP
 #define _CB_HPP
+
 /*
-#include "Envelope.hpp"
-#include <vector>
-#include <cassert>
-*/
-/*
- * This implements a single transition
+ * The handle of an MPI function
  */
 struct CB {
 public:
-    /** The issuer of the MPI function */
+    /** The issuer of the MPI function. */
     int pid;
-    /** The index of the MPI function */
+    /** The index of the MPI function. Should be a monotonic int per-process. */
     int index;
-
-    CB() : pid(-1), index(-1) {}
 
     CB(int p, int i) : pid(p), index(i) {}
 

@@ -33,29 +33,17 @@ public:
     bool addIntraCB(const CB c);
     bool addInterCB(const CB c);
 
-    void setCurrMatching(CB c) {
-        curr_matching = c;
-    }
+    inline void setCurrMatching(CB c) { curr_matching = c; }
 
-    const CB getCurrMatching() const {
-        return curr_matching;
-    }
+    inline const CB getCurrMatching() const { return curr_matching; }
 
-    inline const std::vector<int> &getAncestors() const {
-        return ancestors;
-    }
+    inline const std::vector<int> &getAncestors() const { return ancestors; }
 
-    void addAncestor(const int ancestor) {
-        ancestors.push_back(ancestor);
-    }
+    inline void addAncestor(const int ancestor) { ancestors.push_back(ancestor); }
 
-    inline std::vector<CB> getInterCB() const {
-        return inter_cb;
-    }
+    inline std::vector<CB> getInterCB() const { return inter_cb; }
 
-    inline std::vector<CB> getIntraCB() const {
-        return intra_cb;
-    }
+    inline std::vector<CB> getIntraCB() const { return intra_cb; }
 
 private:
     std::vector<int> ancestors;
