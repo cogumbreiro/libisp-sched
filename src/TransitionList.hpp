@@ -37,7 +37,7 @@ using boost::indirect_iterator;
 using boost::make_indirect_iterator;
 
 /*
- * This implements a TransitionList and updates "Intra-Completes-Before"
+ * Each process collects a list of transitions.
  */
 class TransitionList {
 
