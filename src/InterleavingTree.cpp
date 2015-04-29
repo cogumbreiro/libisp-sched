@@ -72,7 +72,7 @@ int ITree::CHECK (/*ServerSocket &sock, */std::list <int> &l) {
         _slist.push_back(n_);
         n->type = GENERAL_NODE;
         if(cbl.size() == 2) {
-            auto env = n->getEnvelope(cbl.back());
+            auto env = cbl.back().envelope;
             if ((env.func_id == RECV || env.func_id == IRECV) && env.src == WILDCARD) {
                 have_wildcard = true;
                 n->type = WILDCARD_RECV_NODE;
@@ -87,7 +87,7 @@ int ITree::CHECK (/*ServerSocket &sock, */std::list <int> &l) {
         }
     } else {
         if(n->isWildcardNode()) {
-            auto env = n->getEnvelope(cbl.back());
+            auto env = cbl.back().envelope;
             n->wildcard.pid = env.id;
             n->wildcard.index = env.index;
         }
@@ -97,12 +97,12 @@ int ITree::CHECK (/*ServerSocket &sock, */std::list <int> &l) {
 
     /* If the match set has a send and receive - the send is the first item, the receive second */
     /* Here we get the source of the send, so that we can rewrite the wildcard */
-    int source = cbl.front().pid;
-    auto front_env = n->getEnvelope(cbl.front());
+    int source = cbl.front().handle.pid;
+    auto front_env = cbl.front().envelope;
     if (front_env.isSendType()) {
         /* if it's a probe call, we don't issue the send, so no
            need to update the matching of the send */
-        auto back_env = n->getEnvelope(cbl.back());
+        auto back_env = cbl.back().envelope;
         if (back_env.func_id != PROBE &&
             back_env.func_id != IPROBE) {
             front_env.set_curr_matching(cbl.back());
