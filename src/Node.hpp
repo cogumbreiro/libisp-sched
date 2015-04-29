@@ -47,32 +47,33 @@ enum NTYPE {
     DEADLOCK_NODE
 };
 
-class Node {
+struct Node {
 
-public:
-    Node (bool h, const Matcher & m, NTYPE t):/*has_child(h),*/ matcher(m), /*type(t),*/
-    enabledTransitions(EnabledTransitions(matcher, transitions))
+    Node (bool h, const Matcher & m, NTYPE t):/*has_child(h),*/ matcher(m),
+    type(t),
+    enabledTransitions(EnabledTransitions(m, transitions)),
+    wildcard(-1,-1)
     {}
     inline int getNumProcs () const { return transitions.num_procs; }
     inline Envelope & getEnvelope(CB handle) { return transitions.getEnvelope(handle); }
+
+    NTYPE type;
+    CB wildcard;
     /*
     inline int getLevel () const { return _level; }*/
-    /*
     inline bool isWildcardNode() const {
         return type == WILDCARD_RECV_NODE || type == WILDCARD_PROBE_NODE;
-    }*/
+    }
     //int getTotalMpiCalls() const;
     vector<vector<CB> > buildAmpleSet();
     /*
     const bool has_child;
-    const NTYPE type;
 */
 /*
     vector <Node *> children;
     //vector <TransitionList*> _tlist;
     bool has_aux_coenabled_sends;
     bool tlist_dealloc;
-    CB wildcard;
     vector <list <int> > enabled_transitions;*/
 
 private:
@@ -81,7 +82,7 @@ private:
 //    int _num_procs;
     const Matcher & matcher;
 
-    const EnabledTransitions & enabledTransitions;
+    const EnabledTransitions enabledTransitions;
 };
 
 #endif
