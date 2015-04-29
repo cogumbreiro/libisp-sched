@@ -55,7 +55,7 @@ struct Node {
     wildcard(-1,-1)
     {}
     inline int getNumProcs () const { return transitions.num_procs; }
-    inline Envelope & getEnvelope(CB handle) { return transitions.getEnvelope(handle); }
+    //inline Envelope & getEnvelope(CB handle) { return transitions.getEnvelope(handle); }
 
     NTYPE type;
     CB wildcard;
