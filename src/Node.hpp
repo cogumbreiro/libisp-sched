@@ -65,7 +65,7 @@ struct Node {
         return type == WILDCARD_RECV_NODE || type == WILDCARD_PROBE_NODE;
     }
     //int getTotalMpiCalls() const;
-    vector<vector<CB> > buildAmpleSet();
+    vector<vector<MPIFunc> > buildAmpleSet();
     /*
     const bool has_child;
 */

@@ -37,9 +37,9 @@ public:
         transitions(t),
         funcs(f)
     {}
-    vector<vector<CB> > create();
+    vector<vector<MPIFunc> > create();
 private:
-    vector<vector<CB> > ample_set;
+    vector<vector<MPIFunc> > ample_set;
     const Matcher & matcher;
 
     TransitionMap & transitions;
@@ -56,12 +56,12 @@ private:
 
     bool genNonWildcardReceive();
 
-    vector<vector<CB> > createAllMatchingSends(MPIFunc &recv);
+    vector<vector<MPIFunc> > createAllMatchingSends(MPIFunc &recv);
 
     bool genAllSends();
 };
 
-inline vector<vector<CB> > createAmpleSet(TransitionMap & t, const Matcher & m,
+inline vector<vector<MPIFunc> > createAmpleSet(TransitionMap & t, const Matcher & m,
         const vector<MPIFunc> & f) {
     return AmpleSet(t, m, f).create();
 }

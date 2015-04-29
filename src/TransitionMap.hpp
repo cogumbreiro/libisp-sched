@@ -9,6 +9,7 @@
 
 #include <vector>
 #include <memory>
+#include <utility>
 #include <boost/range/adaptor/reversed.hpp>
 #include <boost/range/adaptor/indirected.hpp>
 
@@ -25,10 +26,15 @@ using boost::adaptors::reverse;
 using boost::adaptors::indirect;
 
 struct MPIFunc {
+    MPIFunc(const MPIFunc &o) : handle(o.handle), envelope(o.envelope){}
     MPIFunc(CB h, Envelope & e) : handle(h), envelope(e) {}
     CB handle;
     Envelope & envelope;
-
+    MPIFunc& operator=(const MPIFunc& other) {
+        handle = other.handle;
+        envelope = other.envelope;
+        return *this;
+    }
     inline bool canSend(MPIFunc & recv) const {
         return handle.pid == recv.envelope.src &&
                 envelope.canSend(recv.envelope);
@@ -59,9 +65,9 @@ struct TransitionMap {
         return transitions[handle.pid]->get(handle.index);
     }
 
-    inline CB getLastHandle(int pid) const {
+    inline MPIFunc getLast(int pid) const {
         auto & trans = transitions[pid];
-        return CB(pid, trans->size() - 1);
+        return getMPIFunc(CB(pid, trans->size() - 1));
     }
 
     vector<vector<MPIFunc> > generateMPIFuncs() const {

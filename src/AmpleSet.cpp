@@ -23,10 +23,10 @@ using std::vector;
 
 bool AmpleSet::genWaitorTestAmple() {
     assert(ample_set.empty());
-    vector <CB> blist;
+    vector<MPIFunc> blist;
     for (auto func : funcs) {
         if (func.envelope.isWaitorTestType()) {
-            blist.push_back(func.handle);
+            blist.push_back(func);
         }
     }
     if (blist.size() > 0) {
@@ -35,14 +35,14 @@ bool AmpleSet::genWaitorTestAmple() {
     }
     return false;
 }
-
+/*
 static vector<CB> asHandles(const vector<MPIFunc> &funcs) {
     vector<CB> result;
     for (auto func : funcs) {
         result.push_back(func.handle);
     }
     return result;
-}
+}*/
 
 bool AmpleSet::genCollectiveAmple(int collective) {
     assert(ample_set.empty());
@@ -58,7 +58,7 @@ bool AmpleSet::genCollectiveAmple(int collective) {
 
     if (collective == FINALIZE) {
         if ((int)blist.size() == transitions.num_procs) {
-            ample_set.push_back(asHandles(blist));
+            ample_set.push_back(blist);
             return true;
         }
         return false;
@@ -121,29 +121,27 @@ bool AmpleSet::genCollectiveAmple(int collective) {
     }
 
     if (flist.size() > 0) {
-        ample_set.push_back(asHandles(flist));
+        ample_set.push_back(flist);
         return true;
     }
     return false;
 }
 
-// XXX: move this method to Matcher/InterleavingTree?
-static optional<CB> getMatchingSend(const vector<MPIFunc> & funcs, MPIFunc recv) {
-    optional<CB> result;
+static optional<MPIFunc> getMatchingSend(const vector<MPIFunc> & funcs, MPIFunc recv) {
+    optional<MPIFunc> result;
     /* The use of reverse_iterator here is necessary to preserve program-order
      * matching - This is based on the fact that GetEnabledTransistions also
      * uses a reverse iterator
      */
-    for (auto snd : reverse(funcs)) {
+    for (MPIFunc snd : reverse(funcs)) {
         if (snd.canSend(recv)) {
-            result.reset(snd.handle);
+            result = snd;
             return result;
         }
     }
     return result;
 }
 
-// XXX: move this method to Matcher/InterleavingTree?
 bool AmpleSet::genNonWildcardReceive() {
     assert(ample_set.empty());
     for (auto recv : funcs) {
@@ -151,9 +149,9 @@ bool AmpleSet::genNonWildcardReceive() {
             if (recv.envelope.src != WILDCARD) {
                 auto snd = getMatchingSend(funcs, recv);
                 if(snd) {
-                    vector<CB> ml;
-                    ml.push_back(snd.get());
-                    ml.push_back(recv.handle);
+                    vector<MPIFunc> ml;
+                    ml.push_back(*snd);
+                    ml.push_back(recv);
                     ample_set.push_back(ml);
                     return true;
                 }
@@ -163,15 +161,14 @@ bool AmpleSet::genNonWildcardReceive() {
     return false;
 }
 
-// XXX: move this method to Matcher/InterleavingTree?
-vector<vector<CB> > AmpleSet::createAllMatchingSends(MPIFunc &recv) {
-    vector<vector<CB> > result;
+vector<vector<MPIFunc> > AmpleSet::createAllMatchingSends(MPIFunc &recv) {
+    vector<vector<MPIFunc> > result;
     auto & sends = matcher.findMatchedSends(recv.handle);
     for (auto send : reverse(funcs)) {
         if (recv.canSend(send) && (sends.find(send.handle) == sends.end())) {
-            vector <CB> ml;
-            ml.push_back(send.handle);
-            ml.push_back(recv.handle);
+            vector <MPIFunc> ml;
+            ml.push_back(send);
+            ml.push_back(recv);
             result.push_back(ml);
         }
     }
@@ -186,7 +183,7 @@ bool AmpleSet::genAllSends() {
         if (recv.envelope.isRecvType() && recv.envelope.src == WILDCARD) {
             auto sends = createAllMatchingSends(recv);
             if (sends.size() > 0) {
-                ample_set.insert(ample_set.end(), sends.begin(), sends.end());
+                ample_set = sends;
                 return true;
             }
         }
@@ -205,15 +202,15 @@ bool AmpleSet::genTestIProbe() {
      * If no call can progress and
      * If there's a test call then we can match it and return false.
      * Also need to remove the CB edges */
-    vector<CB> test_list;
+    vector<MPIFunc> test_list;
     for (int pid = 0; pid < transitions.num_procs; pid++) {
-        auto last_handle = transitions.getLastHandle(pid);
-        const auto & last = transitions.get(last_handle);
+        auto last_func = transitions.getLast(pid);
+        const auto & last = transitions.get(last_func.handle);
         if (last.getEnvelope().func_id == TEST ||
                 last.getEnvelope().func_id == TESTALL ||
                 last.getEnvelope().func_id == TESTANY ||
                 last.getEnvelope().func_id == IPROBE) {
-            test_list.push_back(last_handle);
+            test_list.push_back(last_func);
 
             //Need to clean up the CB edge here
             //Each of this transition's ancestors will have an edge
@@ -237,7 +234,7 @@ bool AmpleSet::genTestIProbe() {
 }
 
 // XXX: move out of here
-vector<vector<CB> > AmpleSet::create() {
+vector<vector<MPIFunc> > AmpleSet::create() {
     vector<int> collectives = {BARRIER, BCAST, SCATTER, GATHER, SCATTERV,
             GATHERV, ALLGATHER, ALLGATHERV, ALLTOALL, ALLTOALLV,
             SCAN, EXSCAN, REDUCE, REDUCE_SCATTER, ALLREDUCE, FINALIZE,
