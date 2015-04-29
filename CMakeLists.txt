@@ -29,7 +29,7 @@ add_library(isp-sched
         src/name2id.cpp src/name2id.hpp
         src/Envelope.cpp src/Envelope.hpp
         src/Transition.cpp src/Transition.hpp
-        src/TransitionList.cpp src/TransitionList.hpp
+        src/Trace.cpp src/Trace.hpp
         src/Matcher.hpp
         src/TransitionMap.hpp
         src/EnabledTransitions.cpp src/EnabledTransitions.hpp

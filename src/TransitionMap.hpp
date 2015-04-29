@@ -15,7 +15,7 @@
 
 #include "CB.hpp"
 #include "Transition.hpp"
-#include "TransitionList.hpp"
+#include "Trace.hpp"
 
 using std::vector;
 using std::list;
@@ -49,7 +49,7 @@ struct TransitionMap {
 
     TransitionMap(int p) : num_procs(p) {
         for (int pid = 0; pid < num_procs; pid++) {
-            transitions.push_back(move(make_unique<TransitionList>(pid)));
+            transitions.push_back(move(make_unique<Trace>(pid)));
         }
     }
 
@@ -81,7 +81,7 @@ struct TransitionMap {
     }
 
 private:
-    vector <unique_ptr<TransitionList>> transitions;
+    vector <unique_ptr<Trace>> transitions;
 
     inline MPIFunc getMPIFunc(const CB handle) const {
         return MPIFunc(handle, getEnvelope(handle));

@@ -10,25 +10,20 @@
  * See LICENSE for licensing information
  */
 
-/*
- * ISP: MPI Dynamic Verification Tool
- *
- * File:        TransitionList.cpp
- * Description: Implements lists of transitions from an interleaving
- * Contact:     isp-dev@cs.utah.edu
- */
-
 #include <iostream>
 #include <sstream>
+#include <memory>
 #include <boost/range/adaptor/reversed.hpp>
 #include <boost/range/adaptor/indirected.hpp>
 
-#include "TransitionList.hpp"
+#include "Trace.hpp"
 
 using boost::adaptors::reverse;
 using boost::adaptors::indirect;
+using std::make_shared;
+using std::move;
 
-bool TransitionList::intraCB (const Transition &f, const Transition &s) const {
+bool Trace::intraCB (const Transition &f, const Transition &s) const {
     const auto &env_f = f.getEnvelope();
     const auto &env_s = s.getEnvelope();
 
@@ -102,18 +97,19 @@ bool TransitionList::intraCB (const Transition &f, const Transition &s) const {
     return false;
 }
 
-bool TransitionList::addTransition(std::unique_ptr<Transition> t) {
-    auto & env_t = t->getEnvelope();
-    const int index = env_t.index;
+bool Trace::add(std::unique_ptr<Envelope> env) {
+    const int index = env->index;
     // check if already in the list
     if (index <= size() - 1) {
         // return true only when the envelopes match
-        return tlist[index]->getEnvelope() == env_t;
+        return tlist[index]->getEnvelope() == *env;
     }
     // otherwise append to the list
-    tlist.push_back(std::move(t));
-    auto & trans = tlist.back();
-    const CB last_op(pid, size()-1);
+    tlist.push_back(move(make_shared<Transition>(pid, size() - 1, move(env))));
+    auto & trans = *tlist.back(); // get a ref to what we've just created
+    auto env_t = trans.getEnvelope();
+    weak_ptr<Transition> last_op = tlist.back();
+    //const CB last_op(pid, size()-1);
 
     bool blocking_flag = false;
 
@@ -123,7 +119,7 @@ bool TransitionList::addTransition(std::unique_ptr<Transition> t) {
                env_t.func_id == TEST || env_t.func_id == TESTALL) {
         for (auto & req : env_t.req_procs) {
             if (tlist[req]->addIntraCB(last_op)) {
-                t->addAncestor(req);
+                trans.addAncestor(req);
             }
             ulist.remove(req);
         }
@@ -131,7 +127,7 @@ bool TransitionList::addTransition(std::unique_ptr<Transition> t) {
 
     int i = size() - 2;
     for (auto & curr : reverse(indirect(tlist))) {
-        if (intraCB(curr, *t)) {
+        if (intraCB(curr, trans)) {
             if (blocking_flag) {
                 if (env_t.func_id != SEND &&
                         (ulist.size() == 0 || index < ulist.front())) {
@@ -143,7 +139,7 @@ bool TransitionList::addTransition(std::unique_ptr<Transition> t) {
                 auto env_f = curr.getEnvelope();
                 if (env_f.func_id == IRECV) {
                     if (curr.addIntraCB(last_op)) {
-                        t->addAncestor(i);
+                        trans.addAncestor(i);
                     }
 
                     //terminate if this satisfies the Irecv intraCB rule
@@ -152,7 +148,7 @@ bool TransitionList::addTransition(std::unique_ptr<Transition> t) {
                     }
                 } else if (env_f.func_id == ISEND) {
                     if (curr.addIntraCB(last_op)) {
-                        t->addAncestor(i);
+                        trans.addAncestor(i);
                     }
 
                     //terminate if this satisfies the Isend intraCB rule
@@ -162,7 +158,7 @@ bool TransitionList::addTransition(std::unique_ptr<Transition> t) {
                 }
             } else {
                 if (curr.addIntraCB(last_op)) {
-                    t->addAncestor(i);
+                    trans.addAncestor(i);
                 }
 
                 /* avo 06/11/08 - trying not to add redundant edges */
