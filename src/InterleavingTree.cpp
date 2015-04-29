@@ -60,7 +60,7 @@ int ITree::CHECK (/*ServerSocket &sock, */std::list <int> &l) {
     bool probe_flag = false;
     int choice = 0; // default is EXP_MODE_LEFT_MOST
     Node *n = GetCurrNode();
-    Envelope *env;
+    //Envelope *env;
     auto ample_set = n->buildAmpleSet();
     if (ample_set.empty()) {
         // XXX: DEADLOCK!
@@ -72,24 +72,24 @@ int ITree::CHECK (/*ServerSocket &sock, */std::list <int> &l) {
         _slist.push_back(n_);
         n->type = GENERAL_NODE;
         if(cbl.size() == 2) {
-            env = n->GetTransition(cbl.back())->GetEnvelope();
-            if ((env->func_id == RECV || env->func_id == IRECV) && env->src == WILDCARD) {
+            auto env = n->getEnvelope(cbl.back());
+            if ((env.func_id == RECV || env.func_id == IRECV) && env.src == WILDCARD) {
                 have_wildcard = true;
                 n->type = WILDCARD_RECV_NODE;
-                n->wildcard._pid = env->id;
-                n->wildcard._index = env->index;
-            } else if (env->func_id == PROBE && env->src == WILDCARD) {
+                n->wildcard.pid = env.id;
+                n->wildcard.index = env.index;
+            } else if (env.func_id == PROBE && env.src == WILDCARD) {
                 have_wildcard = true;
                 n->type = WILDCARD_PROBE_NODE;
-                n->wildcard._pid = env->id;
-                n->wildcard._index = env->index;
+                n->wildcard.pid = env.id;
+                n->wildcard.index = env.index;
             }
         }
     } else {
         if(n->isWildcardNode()) {
-            env = n->GetTransition(cbl.back())->GetEnvelope();
-            n->wildcard._pid = env->id;
-            n->wildcard._index = env->index;
+            auto env = n->getEnvelope(cbl.back());
+            n->wildcard.pid = env.id;
+            n->wildcard.index = env.index;
         }
     }
     depth++;
@@ -97,17 +97,17 @@ int ITree::CHECK (/*ServerSocket &sock, */std::list <int> &l) {
 
     /* If the match set has a send and receive - the send is the first item, the receive second */
     /* Here we get the source of the send, so that we can rewrite the wildcard */
-    int source = cbl.front ()._pid;
-
-    if (n->GetTransition(cbl.front())->GetEnvelope ()->isSendType ()) {
+    int source = cbl.front().pid;
+    auto front_env = n->getEnvelope(cbl.front());
+    if (front_env.isSendType()) {
         /* if it's a probe call, we don't issue the send, so no
            need to update the matching of the send */
-        if (n->GetTransition(cbl.back())->GetEnvelope ()->func_id != PROBE &&
-            n->GetTransition(cbl.back())->GetEnvelope ()->func_id != IPROBE) {
-            n->GetTransition(cbl.front())->set_curr_matching(cbl.back());
+        auto back_env = n->getEnvelope(cbl.back());
+        if (back_env.func_id != PROBE &&
+            back_env.func_id != IPROBE) {
+            front_env.set_curr_matching(cbl.back());
         } else {
             probe_flag = true;
-            Scheduler::_probed = true;
         }
 
         n->GetTransition(cbl.back())->set_curr_matching(cbl.front());
