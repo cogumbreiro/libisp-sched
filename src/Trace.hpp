@@ -75,7 +75,7 @@ public:
         ulist.remove(ptr->index);
     }
 
-    optional<shared_ptr<Transition> > getLastMatched() {
+    optional<shared_ptr<Transition> > findLastMatched() {
         optional<shared_ptr<Transition>> result;
         for (auto trans : reverse()) {
             if (trans->isMatched()) {
