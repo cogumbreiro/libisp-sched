@@ -24,7 +24,7 @@ bool EnabledTransitions::allAncestorsMatched(const Transition & func) const {
     for (auto & curr : indirect(func.getAncestors())) {
         auto curr_env = curr.getEnvelope();
         auto curr_func = curr_env.func_id;
-        if (!matcher.isMatched(curr)) {
+        if (!curr.isMatched()) {
             // Wei-Fan Chiang: I don't know why I need to add this line. But, I need it........
             if (curr_func == PCONTROL) {
                 continue;
@@ -40,7 +40,7 @@ bool EnabledTransitions::allAncestorsMatched(const Transition & func) const {
                    curr_func == TESTALL) {
 
             for (auto & anc : indirect(curr.getAncestors())) {
-                if (!matcher.isMatched(anc) && curr_env.matchSend(anc.getEnvelope())) {
+                if (!anc.isMatched() && curr_env.matchSend(anc.getEnvelope())) {
                     return false;
                 }
             }
@@ -58,7 +58,7 @@ bool EnabledTransitions::anyAncestorMatched (const Trace & trace, const Transiti
     }
     vector<shared_ptr<Transition> > filtered = func.getAncestors();
     for (auto req : trace.getRequestedProcs(func)) {
-        if (matcher.isMatched(*req) ||
+        if (req->isMatched() ||
                 (is_wait_or_test_type && /*!Scheduler::_send_block &&*/
                     req->getEnvelope().func_id == ISEND)) {
             any_match = true;
@@ -69,7 +69,7 @@ bool EnabledTransitions::anyAncestorMatched (const Trace & trace, const Transiti
         return false;
     }
     for (auto & curr : indirect(filtered)) {
-        if(!matcher.isMatched(curr)) {
+        if(!curr.isMatched()) {
             return false;
         }
     }
@@ -90,7 +90,7 @@ vector<shared_ptr<Transition> > EnabledTransitions::create() const {
         for (auto func_ptr : trace.reverse()) {
             auto & func = *func_ptr;
             auto pid = func.pid;
-            if (!matcher.isMatched(func)) {
+            if (!func.isMatched()) {
                 const auto func_name = func.getEnvelope().func_id;
                 if ((func_name != WAITANY && func_name != TESTANY) &&
                         allAncestorsMatched(func)) {
@@ -101,8 +101,10 @@ vector<shared_ptr<Transition> > EnabledTransitions::create() const {
                 }
             }
             last--;
-            if (last <= matcher.findLastMatched(pid)) {
-                break;
+            if (auto last_matched = trace.findLastMatched()) {
+                if (last <= (*last_matched)->index) {
+                    break;
+                }
             }
         }
     }

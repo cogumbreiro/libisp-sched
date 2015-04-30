@@ -55,7 +55,7 @@ struct Node {
     Node(unique_ptr<State> s, bool h, const Matcher & m, NTYPE t):/*has_child(h),*/ matcher(m),
     state(std::move(s)),
     type(t),
-    enabledTransitions(EnabledTransitions(m, *s))//,
+    enabledTransitions(EnabledTransitions(*s))//,
     {}
     inline int getNumProcs () const { return state->num_procs; }
 

@@ -5,12 +5,11 @@
 #include "State.hpp"
 
 struct EnabledTransitions {
-    EnabledTransitions(const Matcher & m, const State & s) :
-    matcher(m), state(s) {}
-    vector<shared_ptr<Transition> > create() const;
-private:
-    const Matcher & matcher;
+    EnabledTransitions(const State & s) : state(s) {}
 
+    vector<shared_ptr<Transition> > create() const;
+
+private:
     const State & state;
 
     bool anyAncestorMatched(const Trace & trace, const Transition &) const;
