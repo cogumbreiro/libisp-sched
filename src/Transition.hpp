@@ -43,10 +43,26 @@ struct Transition {
 
     inline Envelope& getEnvelope () const {return *envelope;}
 
-    bool addIntraCB(shared_ptr<Transition> t);
+    bool addIntraCB(shared_ptr<Transition> t) {
+        if(isNew(t)) {
+            intra_cb.push_back(t);
+            return true;
+        }
+        return false;
+    }
 
-    bool addInterCB(shared_ptr<Transition> t);
-
+    bool addInterCB(shared_ptr<Transition> t) {
+        /* XXX: Tiago: why is this needed?
+        if (t.pid == -1 && t.index == -1) {
+            inter_cb.push_back(t);
+            return false;
+        }*/
+        if(isNew(t)) {
+            inter_cb.push_back(t);
+            return true;
+        }
+        return false;
+    }
     //inline void setCurrMatching(CB c) { curr_matching = c; }
 
     //inline const Transition& getCurrMatching() const { return curr_matching; }
@@ -58,6 +74,11 @@ struct Transition {
     inline vector<shared_ptr<Transition> > getInterCB() const { return share(inter_cb); }
 
     inline vector<shared_ptr<Transition> > getIntraCB() const { return share(intra_cb); }
+
+    inline bool canSend(Transition & recv) const {
+        auto & recv_env = *recv.envelope;
+        return pid == recv_env.src && envelope->canSend(recv_env);
+    }
 
 private:
     vector<weak_ptr<Transition> > ancestors;
