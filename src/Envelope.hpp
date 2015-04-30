@@ -50,7 +50,6 @@ public:
     int                 stag;
     string         comm;
     int					data_type; //CGD
-    bool				typesMatch;//CGD
     std::vector<int>    comm_list;
     std::vector<int>    req_procs;
 
