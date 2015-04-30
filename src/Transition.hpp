@@ -37,6 +37,8 @@ struct Transition {
 
     const int pid;
 
+    bool types_match = true;
+
     Transition(int pid, int index, unique_ptr<Envelope> envelope) :
         pid(pid), index(index), envelope(std::move(envelope))
     {}
@@ -63,9 +65,11 @@ struct Transition {
         }
         return false;
     }
-    //inline void setCurrMatching(CB c) { curr_matching = c; }
+    inline void setCurrentMatching(shared_ptr<Transition> c) { curr_matching = c; }
 
-    //inline const Transition& getCurrMatching() const { return curr_matching; }
+    inline const shared_ptr<Transition> getCurrentMatching() const {
+        return curr_matching.lock();
+    }
 
     inline const vector<shared_ptr<Transition> > getAncestors() const { return share(ancestors); }
 
@@ -80,12 +84,22 @@ struct Transition {
         return pid == recv_env.src && envelope->canSend(recv_env);
     }
 
+    inline void setMatched() { is_matched = true; }
+
+    inline bool isMatched() const { return is_matched; }
+
+    inline bool isIssued() const {
+        return is_issued;
+    }
+
 private:
     vector<weak_ptr<Transition> > ancestors;
-    //optional<Transition &> curr_matching;
+    weak_ptr<Transition> curr_matching;
     unique_ptr<Envelope> envelope;
     vector<weak_ptr<Transition> > inter_cb;
     vector<weak_ptr<Transition> > intra_cb;
+    bool is_matched = false;
+    bool is_issued = false;
     /**
      * Tests if an element is in the vector.
      */

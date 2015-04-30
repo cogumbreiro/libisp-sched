@@ -19,6 +19,7 @@
 #include <sstream>
 #include <memory>
 #include <boost/range/adaptor/reversed.hpp>
+#include <boost/optional.hpp>
 
 #include "Envelope.hpp"
 #include "Transition.hpp"
@@ -27,6 +28,7 @@ using std::unique_ptr;
 using std::shared_ptr;
 using std::vector;
 using std::list; // XXX: remove
+using boost::optional;
 
 /*
  * Each process collects a list of transitions.
@@ -67,7 +69,22 @@ public:
         return result;
     }
 
+    void setMatched(shared_ptr<Transition> ptr) {
+        assert(ptr->pid == pid);
+        ptr->setMatched();
+        ulist.remove(ptr->index);
+    }
 
+    optional<shared_ptr<Transition> > getLastMatched() {
+        optional<shared_ptr<Transition>> result;
+        for (auto trans : reverse()) {
+            if (trans->isMatched()) {
+                result.reset(trans);
+                return result;
+            }
+        }
+        return result;
+    }
 private:
     vector<shared_ptr<Transition> > tlist;
 

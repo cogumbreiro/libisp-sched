@@ -65,6 +65,10 @@ public:
         return traces[pid]->getLast();
     }
 
+    void setMatched(shared_ptr<Transition> ptr) {
+        traces[ptr->pid]->setMatched(ptr);
+    }
+
 private:
     vector <unique_ptr<Trace>> traces;
 };
