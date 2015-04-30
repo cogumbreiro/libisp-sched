@@ -18,33 +18,34 @@
 #include <vector>
 #include <set>
 #include <iterator>
-#include <list>
-#include <cassert>
+#include <memory>
 #include <boost/optional.hpp>
 
-#include "TransitionList.hpp"
+#include "Trace.hpp"
 #include "Matcher.hpp"
-#include "TransitionMap.hpp"
+#include "State.hpp"
 
 using std::vector;
-using boost::optional;
+using std::shared_ptr;
+//using boost::optional;
 
 struct AmpleSet {
 
 public:
-    AmpleSet(TransitionMap & t, const Matcher & m, const vector<MPIFunc> & f):
+    AmpleSet(State &s, const Matcher & m, const vector<shared_ptr<Transition>> & f):
         matcher(m),
-        transitions(t),
+        state(s),
         funcs(f)
     {}
-    vector<vector<MPIFunc> > create();
+    vector<vector<shared_ptr<Transition> > > create();
 private:
-    vector<vector<MPIFunc> > ample_set;
+    vector<vector<shared_ptr<Transition> > > ample_set;
+
     const Matcher & matcher;
 
-    TransitionMap & transitions;
+    State & state;
 
-    const vector<MPIFunc> & funcs;
+    const vector<shared_ptr<Transition>> & funcs;
 
     bool genCollectiveAmple(int collective);
 
@@ -56,14 +57,14 @@ private:
 
     bool genNonWildcardReceive();
 
-    vector<vector<MPIFunc> > createAllMatchingSends(MPIFunc &recv);
+    vector<vector<shared_ptr<Transition> > > createAllMatchingSends(shared_ptr<Transition>);
 
     bool genAllSends();
 };
 
-inline vector<vector<MPIFunc> > createAmpleSet(TransitionMap & t, const Matcher & m,
-        const vector<MPIFunc> & f) {
-    return AmpleSet(t, m, f).create();
+inline vector<vector<shared_ptr<Transition> > > createAmpleSet(State& s, const Matcher & m,
+        const vector<shared_ptr<Transition> > & f) {
+    return AmpleSet(s, m, f).create();
 }
 
 #endif

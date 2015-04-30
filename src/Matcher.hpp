@@ -11,6 +11,6 @@ public:
   virtual ~Matcher(){}
   virtual bool isMatched(const Transition &) const = 0;
   virtual int findLastMatched(int) const = 0;
-  virtual const std::set<CB> & findMatchedSends(CB) const = 0;
+  virtual const std::set<shared_ptr<Transition> > & findMatchedSends(const Transition &) const = 0;
 };
 #endif
