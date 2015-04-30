@@ -28,10 +28,10 @@ add_library(isp-sched
         src/CB.hpp
         src/name2id.cpp src/name2id.hpp
         src/Envelope.cpp src/Envelope.hpp
-        src/Transition.cpp src/Transition.hpp
+        src/Transition.hpp
         src/Trace.cpp src/Trace.hpp
         src/Matcher.hpp
-        src/TransitionMap.hpp
+        src/State.hpp
         src/EnabledTransitions.cpp src/EnabledTransitions.hpp
         src/AmpleSet.cpp src/AmpleSet.hpp
         src/Node.cpp src/Node.hpp
