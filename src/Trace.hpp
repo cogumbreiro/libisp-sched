@@ -42,7 +42,7 @@ public:
 
     inline Transition & get(int index) const { return *tlist[index]; }
 
-    inline Transition & getLast() const { return *tlist.back(); }
+    inline shared_ptr<Transition> getLast() const { return tlist.back(); }
 
     bool add(unique_ptr<Envelope> t);
 
