@@ -68,28 +68,26 @@ int ITree::CHECK (/*ServerSocket &sock, */std::list <int> &l) {
     }
     auto cbl = ample_set.at(choice);
     if (depth >= (int)_slist.size ()-1) {
-        Node *n_ = new Node(*n);
-        _slist.push_back(n_);
+        // add a copy of the current node in `_slist'
+        //XXX: Node *n_ = new Node(*n);
+        //XXX: _slist.push_back(n_);
         n->type = GENERAL_NODE;
         if(cbl.size() == 2) {
-            auto env = cbl.back().envelope;
+            auto last_ptr = cbl.back();
+            auto env = last_ptr->getEnvelope();
             if ((env.func_id == RECV || env.func_id == IRECV) && env.src == WILDCARD) {
                 have_wildcard = true;
                 n->type = WILDCARD_RECV_NODE;
-                n->wildcard.pid = env.id;
-                n->wildcard.index = env.index;
+                n->wildcard = last_ptr;
             } else if (env.func_id == PROBE && env.src == WILDCARD) {
                 have_wildcard = true;
                 n->type = WILDCARD_PROBE_NODE;
-                n->wildcard.pid = env.id;
-                n->wildcard.index = env.index;
+                n->wildcard = last_ptr;
             }
         }
     } else {
         if(n->isWildcardNode()) {
-            auto env = cbl.back().envelope;
-            n->wildcard.pid = env.id;
-            n->wildcard.index = env.index;
+            n->wildcard = cbl.back();
         }
     }
     depth++;
@@ -97,82 +95,55 @@ int ITree::CHECK (/*ServerSocket &sock, */std::list <int> &l) {
 
     /* If the match set has a send and receive - the send is the first item, the receive second */
     /* Here we get the source of the send, so that we can rewrite the wildcard */
-    int source = cbl.front().handle.pid;
-    auto front_env = cbl.front().envelope;
+    auto front_ptr = cbl.front();
+    auto front_env = front_ptr->getEnvelope();
+    auto back_ptr = cbl.back();
+    auto & back_env = back_ptr->getEnvelope();
     if (front_env.isSendType()) {
         /* if it's a probe call, we don't issue the send, so no
            need to update the matching of the send */
-        auto back_env = cbl.back().envelope;
         if (back_env.func_id != PROBE &&
             back_env.func_id != IPROBE) {
-            front_env.set_curr_matching(cbl.back());
+            front_ptr->setCurrentMatching(back_ptr);
         } else {
             probe_flag = true;
         }
-
-        n->GetTransition(cbl.back())->set_curr_matching(cbl.front());
+        back_ptr->setCurrentMatching(front_ptr);
     }
 
     //Check if the data types match CGD
-    if (n->GetTransition(cbl.front())->GetEnvelope()->isSendType ()){
-		int currType = n->GetTransition(cbl.front())->GetEnvelope()->data_type;
-		int matchType = n->GetTransition(cbl.back())->GetEnvelope()->data_type;
-		if(currType == matchType){
-			n->GetTransition(cbl.front())->GetEnvelope()->typesMatch = true;
-			n->GetTransition(cbl.back())->GetEnvelope()->typesMatch = true;
-		}else{
-			n->GetTransition(cbl.front())->GetEnvelope()->typesMatch = false;
-			n->GetTransition(cbl.back())->GetEnvelope()->typesMatch = false;
-
-			Envelope *env = n->GetTransition(cbl.front())->GetEnvelope ();
-			Scheduler::_mismatchLog << env->filename << " "
-								    << env->linenumber << std::endl;
-			env = n->GetTransition(cbl.back())->GetEnvelope ();
-			Scheduler::_mismatchLog << env->filename << " "
-							        << env->linenumber << std::endl;
-		}
-    } else if(n->GetTransition(cbl.front())->GetEnvelope()->data_type == -1){
-    	Envelope *env = n->GetTransition(cbl.front())->GetEnvelope();
-    	Scheduler::_mismatchLog << env->filename << " "
-					            << env->linenumber << std::endl;
+    if (front_env.isSendType()){
+        auto back_ptr = cbl.back();
+        auto types_match = front_env.data_type == back_env.data_type;
+        front_ptr->types_match = types_match;
+        back_ptr->types_match = types_match;
+        // XXX: log mismatch if mismatches
+    } else if(front_env.data_type == -1){
+        // XXX: log mismatch
     }
 
-    std::list <CB>::iterator iter;
-    std::list <CB>::iterator iter_end = cbl.end();
     bool test_iprobe_calls_only = true;
-    for (iter = cbl.begin (); iter != iter_end; iter++) {
-        env = n->GetTransition (*iter)->GetEnvelope ();
-
-        if (env->func_id != IPROBE && env->func_id != TEST &&
-            env->func_id != TESTALL && env->func_id != TESTANY) {
+    for (auto curr : cbl) {
+        auto & env = curr->getEnvelope();
+        if (env.func_id != IPROBE && env.func_id != TEST &&
+            env.func_id != TESTALL && env.func_id != TESTANY) {
             test_iprobe_calls_only = false;
             break;
         }
 
     }
 
-    for (iter = cbl.begin (); iter != iter_end; iter++) {
-
-        env = n->GetTransition (*iter)->GetEnvelope ();
+    for (auto curr : cbl) {
+        auto & env = curr->getEnvelope();
 
         if (test_iprobe_calls_only) {
-            source = -1;
+            front_ptr = nullptr;
         }
         /* If the other call is a probe, we only issue the send
          * but leave the send un-matched! */
-        if (!probe_flag || !env->isSendType()) {
-            is_matched[iter->_pid][iter->_index] = true;
-            n->_tlist[iter->_pid]->_ulist.remove(iter->_index);
+        if (!probe_flag || !env.isSendType()) {
+            n->getState().setMatched(curr);
         }
-
-        /* increase the last matched transition to the latest matched transition */
-
-        int temp_last_matched = last_matched[iter->_pid];
-        while (temp_last_matched < (int) (n->_tlist[iter->_pid]->_tlist.size()-1)
-               && is_matched[iter->_pid][temp_last_matched + 1]) {
-            temp_last_matched ++;
-        }
-        last_matched[iter->_pid] = temp_last_matched;
 
         /* if the call has been issued earlier, do not issue it again */
         /* What happens here: If we issue a pair of Send/Probe, do
@@ -181,7 +152,7 @@ int ITree::CHECK (/*ServerSocket &sock, */std::list <int> &l) {
          * scheduler to read the next envelope of the send process */
 
         if (is_issued[iter->_pid][iter->_index]) {
-            if (env->isSendType() && env->isBlockingType() && !Scheduler::_probed) {
+            if (env->isSendType() && env->isBlockingType() /*XXX: && !Scheduler::_probed*/) {
                 Scheduler::_runQ[iter->_pid]->_read_next_env = true;
             }
             continue;
@@ -190,7 +161,7 @@ int ITree::CHECK (/*ServerSocket &sock, */std::list <int> &l) {
 
         oss << goahead << " " << env->index << " " << source;
 
-        env->Issued ();
+        env->issue();
         if (env->func_id == COMM_CREATE || env->func_id == COMM_DUP
             || env->func_id == CART_CREATE || env->func_id == COMM_SPLIT) {
             oss << " " << env->comm_id;

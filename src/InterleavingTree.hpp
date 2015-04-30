@@ -20,7 +20,8 @@
 #include <list>
 #include <cassert>
 
-#include "TransitionList.hpp"
+#include "CB.hpp"
+//#include "TransitionList.hpp"
 
 class Node;
 
