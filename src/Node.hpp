@@ -40,6 +40,7 @@
 using std::vector;
 using std::list;
 using std::shared_ptr;
+using std::unique_ptr;
 using boost::optional;
 
 enum NTYPE {
@@ -51,16 +52,15 @@ enum NTYPE {
 
 struct Node {
 
-    Node (bool h, const Matcher & m, NTYPE t):/*has_child(h),*/ matcher(m),
+    Node(unique_ptr<State> s, bool h, const Matcher & m, NTYPE t):/*has_child(h),*/ matcher(m),
+    state(std::move(s)),
     type(t),
-    enabledTransitions(EnabledTransitions(m, state))//,
-    //wildcard(-1,-1)
+    enabledTransitions(EnabledTransitions(m, *s))//,
     {}
-    inline int getNumProcs () const { return state.num_procs; }
-    //inline Envelope & getEnvelope(CB handle) { return transitions.getEnvelope(handle); }
+    inline int getNumProcs () const { return state->num_procs; }
 
     NTYPE type;
-    //CB wildcard;
+    shared_ptr<Transition> wildcard;
     /*
     inline int getLevel () const { return _level; }*/
     inline bool isWildcardNode() const {
@@ -77,9 +77,10 @@ struct Node {
     bool has_aux_coenabled_sends;
     bool tlist_dealloc;
     vector <list <int> > enabled_transitions;*/
+    State & getState() { return *state; };
 
 private:
-    State state;
+    unique_ptr<State> state;
 //    int _level;
 //    int _num_procs;
     const Matcher & matcher;
