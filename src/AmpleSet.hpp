@@ -19,7 +19,6 @@
 #include <set>
 #include <iterator>
 #include <memory>
-#include <boost/optional.hpp>
 
 #include "Trace.hpp"
 #include "Matcher.hpp"
@@ -27,7 +26,6 @@
 
 using std::vector;
 using std::shared_ptr;
-//using boost::optional;
 
 struct AmpleSet {
 
