@@ -24,20 +24,22 @@
 #define CONSOLE_OUTPUT_THRESHOLD 200
 
 #include <vector>
+#include <memory>
 #include <set>
 #include <iterator>
 #include <list>
 #include <cassert>
 #include <boost/optional.hpp>
 
-#include "TransitionList.hpp"
+#include "Trace.hpp"
 #include "Matcher.hpp"
-#include "TransitionMap.hpp"
+#include "State.hpp"
 #include "EnabledTransitions.hpp"
 #include "AmpleSet.hpp"
 
 using std::vector;
 using std::list;
+using std::shared_ptr;
 using boost::optional;
 
 enum NTYPE {
@@ -51,21 +53,21 @@ struct Node {
 
     Node (bool h, const Matcher & m, NTYPE t):/*has_child(h),*/ matcher(m),
     type(t),
-    enabledTransitions(EnabledTransitions(m, transitions)),
-    wildcard(-1,-1)
+    enabledTransitions(EnabledTransitions(m, state))//,
+    //wildcard(-1,-1)
     {}
-    inline int getNumProcs () const { return transitions.num_procs; }
+    inline int getNumProcs () const { return state.num_procs; }
     //inline Envelope & getEnvelope(CB handle) { return transitions.getEnvelope(handle); }
 
     NTYPE type;
-    CB wildcard;
+    //CB wildcard;
     /*
     inline int getLevel () const { return _level; }*/
     inline bool isWildcardNode() const {
         return type == WILDCARD_RECV_NODE || type == WILDCARD_PROBE_NODE;
     }
     //int getTotalMpiCalls() const;
-    vector<vector<MPIFunc> > buildAmpleSet();
+    vector<vector<shared_ptr<Transition> > > buildAmpleSet();
     /*
     const bool has_child;
 */
@@ -77,7 +79,7 @@ struct Node {
     vector <list <int> > enabled_transitions;*/
 
 private:
-    TransitionMap transitions;
+    State state;
 //    int _level;
 //    int _num_procs;
     const Matcher & matcher;

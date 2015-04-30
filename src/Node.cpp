@@ -45,7 +45,7 @@ int Node::getTotalMpiCalls() const {
     return sum;
 }*/
 
-vector<vector<MPIFunc> > Node::buildAmpleSet() {
+vector<vector<shared_ptr<Transition> > > Node::buildAmpleSet() {
     auto enabled = enabledTransitions.create();
-    return createAmpleSet(transitions, matcher, enabled);
+    return createAmpleSet(state, matcher, enabled);
 }
