@@ -105,29 +105,28 @@ bool Trace::add(std::unique_ptr<Envelope> env) {
         return tlist[index]->getEnvelope() == *env;
     }
     // otherwise append to the list
-    tlist.push_back(move(make_shared<Transition>(pid, size() - 1, move(env))));
-    auto & trans = *tlist.back(); // get a ref to what we've just created
-    auto env_t = trans.getEnvelope();
-    weak_ptr<Transition> last_op = tlist.back();
-    //const CB last_op(pid, size()-1);
+    auto last_op = make_shared<Transition>(pid, size() - 1, move(env));
+    tlist.push_back(last_op);
+    auto env_t = last_op->getEnvelope();
 
     bool blocking_flag = false;
 
     if (env_t.func_id == ISEND || env_t.func_id == IRECV) {
-        ulist.push_back (index);
+        ulist.push_back(last_op->index);
     } else if (env_t.func_id == WAIT || env_t.func_id == WAITALL ||
                env_t.func_id == TEST || env_t.func_id == TESTALL) {
         for (auto & req : env_t.req_procs) {
-            if (tlist[req]->addIntraCB(last_op)) {
-                trans.addAncestor(req);
+            auto curr = tlist[req];
+            if (curr->addIntraCB(last_op)) {
+                last_op->addAncestor(curr);
             }
-            ulist.remove(req);
+            ulist.remove(curr->index);
         }
     }
 
     int i = size() - 2;
-    for (auto & curr : reverse(indirect(tlist))) {
-        if (intraCB(curr, trans)) {
+    for (auto & curr : indirect(reverse())) {
+        if (intraCB(curr, *last_op)) {
             if (blocking_flag) {
                 if (env_t.func_id != SEND &&
                         (ulist.size() == 0 || index < ulist.front())) {
@@ -139,7 +138,7 @@ bool Trace::add(std::unique_ptr<Envelope> env) {
                 auto env_f = curr.getEnvelope();
                 if (env_f.func_id == IRECV) {
                     if (curr.addIntraCB(last_op)) {
-                        trans.addAncestor(i);
+                        last_op->addAncestor(tlist[i]);
                     }
 
                     //terminate if this satisfies the Irecv intraCB rule
@@ -148,7 +147,7 @@ bool Trace::add(std::unique_ptr<Envelope> env) {
                     }
                 } else if (env_f.func_id == ISEND) {
                     if (curr.addIntraCB(last_op)) {
-                        trans.addAncestor(i);
+                        last_op->addAncestor(tlist[i]);
                     }
 
                     //terminate if this satisfies the Isend intraCB rule
@@ -158,7 +157,7 @@ bool Trace::add(std::unique_ptr<Envelope> env) {
                 }
             } else {
                 if (curr.addIntraCB(last_op)) {
-                    trans.addAncestor(i);
+                    last_op->addAncestor(tlist[i]);
                 }
 
                 /* avo 06/11/08 - trying not to add redundant edges */

@@ -18,7 +18,7 @@
 #include <algorithm>
 #include <sstream>
 #include <memory>
-#include <boost/iterator/indirect_iterator.hpp>
+#include <boost/range/adaptor/reversed.hpp>
 
 #include "Envelope.hpp"
 #include "Transition.hpp"
@@ -27,8 +27,6 @@ using std::unique_ptr;
 using std::shared_ptr;
 using std::vector;
 using std::list; // XXX: remove
-using boost::indirect_iterator;
-using boost::make_indirect_iterator;
 
 /*
  * Each process collects a list of transitions.
@@ -44,23 +42,31 @@ public:
 
     inline Transition & get(int index) const { return *tlist[index]; }
 
+    inline Transition & getLast() const { return *tlist.back(); }
+
     bool add(unique_ptr<Envelope> t);
 
-    inline indirect_iterator<vector<shared_ptr<Transition> >::iterator> begin () {
-        return make_indirect_iterator(tlist.begin());
+    inline auto begin() { return tlist.begin(); }
+
+    inline auto end() { return tlist.end(); }
+
+    inline auto begin() const { return tlist.begin(); }
+
+    inline auto end() const { return tlist.end(); }
+
+    auto reverse() {
+        return boost::adaptors::reverse(tlist);
     }
 
-    inline indirect_iterator<vector<shared_ptr<Transition> >::iterator> end () {
-        return make_indirect_iterator(tlist.end());
+    vector<shared_ptr<Transition> > getRequestedProcs(const Transition &child) const {
+        assert(child.pid == pid);
+        vector<shared_ptr<Transition> > result;
+        for (auto req_proc : child.getEnvelope().req_procs) {
+            result.push_back(tlist[req_proc]);
+        }
+        return result;
     }
 
-    inline indirect_iterator<vector<shared_ptr<Transition> >::reverse_iterator> rbegin () {
-        return make_indirect_iterator(tlist.rbegin());
-    }
-
-    inline indirect_iterator<vector<shared_ptr<Transition> >::reverse_iterator> rend () {
-        return make_indirect_iterator(tlist.rend());
-    }
 
 private:
     vector<shared_ptr<Transition> > tlist;
