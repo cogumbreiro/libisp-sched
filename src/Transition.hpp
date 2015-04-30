@@ -24,17 +24,13 @@
 #include <vector>
 #include <cassert>
 #include <memory>
-#include <boost/optional.hpp>
-#include <boost/range/adaptor/indirected.hpp>
 
 #include "Envelope.hpp"
-#include "CB.hpp"
 
 using std::vector;
 using std::unique_ptr;
 using std::weak_ptr;
-using boost::optional;
-using boost::adaptors::indirect;
+using std::shared_ptr;
 
 struct Transition {
     const int index;
@@ -47,24 +43,24 @@ struct Transition {
 
     inline Envelope& getEnvelope () const {return *envelope;}
 
-    bool addIntraCB(weak_ptr<Transition> t);
+    bool addIntraCB(shared_ptr<Transition> t);
 
-    bool addInterCB(weak_ptr<Transition> t);
+    bool addInterCB(shared_ptr<Transition> t);
 
     //inline void setCurrMatching(CB c) { curr_matching = c; }
 
     //inline const Transition& getCurrMatching() const { return curr_matching; }
 
-    inline const vector<int> &getAncestors() const { return ancestors; }
+    inline const vector<shared_ptr<Transition> > getAncestors() const { return share(ancestors); }
 
-    inline void addAncestor(const int ancestor) { ancestors.push_back(ancestor); }
+    inline void addAncestor(shared_ptr<Transition> ancestor) { ancestors.push_back(ancestor); }
 
-    inline vector<weak_ptr<Transition> > getInterCB() const { return inter_cb; }
+    inline vector<shared_ptr<Transition> > getInterCB() const { return share(inter_cb); }
 
-    inline vector<weak_ptr<Transition> > getIntraCB() const { return intra_cb; }
+    inline vector<shared_ptr<Transition> > getIntraCB() const { return share(intra_cb); }
 
 private:
-    vector<int> ancestors;
+    vector<weak_ptr<Transition> > ancestors;
     //optional<Transition &> curr_matching;
     unique_ptr<Envelope> envelope;
     vector<weak_ptr<Transition> > inter_cb;
@@ -83,6 +79,17 @@ private:
         return false;
     }
 
+    static vector<shared_ptr<Transition> > share(const vector<weak_ptr<Transition> > & src) {
+        vector<shared_ptr<Transition> > temp;
+        temp.resize(src.size());
+        for (auto weak : src) {
+            if (auto val = weak.lock()) {
+                temp.push_back(val);
+            }
+        }
+        return temp;
+    }
+
     inline bool handleEquals(const Transition & other) const {
         return pid == other.pid && index == other.index;
     }
@@ -90,11 +97,8 @@ private:
     /**
      * Tests whether the transition contains the given cb.
      */
-    inline bool isNew(weak_ptr<Transition> ref) const {
-        if (auto other = ref.lock()) {
-            return !contains(intra_cb, *other)  && !contains(inter_cb, *other);
-        }
-        return false;
+    inline bool isNew(shared_ptr<Transition> other) const {
+        return !contains(intra_cb, *other)  && !contains(inter_cb, *other);
     }
 
 };
