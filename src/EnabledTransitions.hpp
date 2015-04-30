@@ -2,20 +2,20 @@
 #define _ENABLED_TRANSITIONS_HPP
 
 #include "Matcher.hpp"
-#include "TransitionMap.hpp"
+#include "State.hpp"
 
 struct EnabledTransitions {
-    EnabledTransitions(const Matcher & m, const TransitionMap & t) :
-    matcher(m), transitions(t) {}
-    vector<MPIFunc> create() const;
+    EnabledTransitions(const Matcher & m, const State & s) :
+    matcher(m), state(s) {}
+    vector<shared_ptr<Transition> > create() const;
 private:
     const Matcher & matcher;
 
-    const TransitionMap & transitions;
+    const State & state;
 
-    bool anyAncestorMatched (const MPIFunc func, const vector <int> &indices) const;
+    bool anyAncestorMatched(const Trace & trace, const Transition &) const;
 
-    bool allAncestorsMatched(const MPIFunc func, const vector <int> &indices) const;
+    bool allAncestorsMatched(const Transition &) const;
 };
 
 #endif

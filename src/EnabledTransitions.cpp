@@ -1,14 +1,30 @@
+/*
+ * Copyright (c) 2008-2009
+ *
+ * School of Computing, University of Utah,
+ * Salt Lake City, UT 84112, USA
+ *
+ * and the Gauss Group
+ * http://www.cs.utah.edu/formal_verification
+ *
+ * See LICENSE for licensing information
+ */
+
+#include <boost/range/adaptor/indirected.hpp>
+#include <boost/range/adaptor/reversed.hpp>
+
 #include "EnabledTransitions.hpp"
 
-bool EnabledTransitions::allAncestorsMatched(const MPIFunc func, const vector <int> &indices) const {
-    bool is_wait_or_test_type = func.envelope.isWaitorTestType();
-    auto pid = func.handle.pid;
-    for (auto curr : indices) {
-        auto curr_handle = CB(pid, curr);
-        auto & curr_trans = transitions.get(curr_handle);
-        auto curr_env = curr_trans.getEnvelope();
+using boost::adaptors::indirect;
+using boost::adaptors::reversed;
+
+bool EnabledTransitions::allAncestorsMatched(const Transition & func) const {
+    bool is_wait_or_test_type = func.getEnvelope().isWaitorTestType();
+    auto pid = func.pid;
+    for (auto & curr : indirect(func.getAncestors())) {
+        auto curr_env = curr.getEnvelope();
         auto curr_func = curr_env.func_id;
-        if (!matcher.isMatched(curr_handle)) {
+        if (!matcher.isMatched(curr)) {
             // Wei-Fan Chiang: I don't know why I need to add this line. But, I need it........
             if (curr_func == PCONTROL) {
                 continue;
@@ -23,10 +39,8 @@ bool EnabledTransitions::allAncestorsMatched(const MPIFunc func, const vector <i
                    curr_func == WAITALL ||
                    curr_func == TESTALL) {
 
-            for (auto anc_id : curr_trans.getAncestors()) {
-                auto anc = CB(pid, anc_id);
-                auto & anc_env = transitions.getEnvelope(anc);
-                if (!matcher.isMatched(anc) && curr_env.matchSend(anc_env)) {
+            for (auto & anc : indirect(curr.getAncestors())) {
+                if (!matcher.isMatched(anc) && curr_env.matchSend(anc.getEnvelope())) {
                     return false;
                 }
             }
@@ -35,30 +49,27 @@ bool EnabledTransitions::allAncestorsMatched(const MPIFunc func, const vector <i
     return true;
 }
 
-bool EnabledTransitions::anyAncestorMatched (const MPIFunc func, const vector <int> &indices) const {
+bool EnabledTransitions::anyAncestorMatched (const Trace & trace, const Transition & func) const {
     bool any_match = false;
 
-    bool is_wait_or_test_type = func.envelope.isWaitorTestType();
-    if (is_wait_or_test_type && indices.size() == 0) {
+    bool is_wait_or_test_type = func.getEnvelope().isWaitorTestType();
+    if (is_wait_or_test_type && func.getAncestors().empty()) {
         return true;
     }
-    vector<int> filtered = indices;
-    for (auto idx : func.envelope.req_procs) {
-        auto req = CB(func.handle.pid, idx);
-        if (matcher.isMatched(req) ||
+    vector<shared_ptr<Transition> > filtered = func.getAncestors();
+    for (auto req : trace.getRequestedProcs(func)) {
+        if (matcher.isMatched(*req) ||
                 (is_wait_or_test_type && /*!Scheduler::_send_block &&*/
-                    transitions.getEnvelope(req).func_id == ISEND)) {
+                    req->getEnvelope().func_id == ISEND)) {
             any_match = true;
         }
-        filtered.erase(std::remove(filtered.begin(), filtered.end(), idx), filtered.end());
+        filtered.erase(std::remove(filtered.begin(), filtered.end(), req), filtered.end());
     }
     if (!any_match) {
         return false;
     }
-    int pid = func.handle.pid;
-    for (auto id : filtered) {
-        auto op = CB(pid, id);
-        if(!matcher.isMatched(op)) {
+    for (auto & curr : indirect(filtered)) {
+        if(!matcher.isMatched(curr)) {
             return false;
         }
     }
@@ -71,22 +82,22 @@ bool EnabledTransitions::anyAncestorMatched (const MPIFunc func, const vector <i
  * transition - If we stop using reverse iterator - we need to stop using
  * reverse iterator in GetMatchingSends as well - otherwise we won't
  * be able to preserve the program order matching of receives/sends */
-vector<MPIFunc> EnabledTransitions::create() const {
-    vector<MPIFunc> result;
+vector<shared_ptr<Transition> > EnabledTransitions::create() const {
+    vector<shared_ptr<Transition> > result;
 
-    for (auto funcs : transitions.generateMPIFuncs()) {
-        int last = funcs.size() - 1;
-        for (auto func : reverse(funcs)) {
-            auto pid = func.handle.pid;
-            if (!matcher.isMatched(func.handle)) {
-                vector<int> ancestors(transitions.get(func.handle).getAncestors());
-                const auto func_name = func.envelope.func_id;
+    for (Trace & trace : state) {
+        int last = trace.size() - 1;
+        for (auto func_ptr : trace.reverse()) {
+            auto & func = *func_ptr;
+            auto pid = func.pid;
+            if (!matcher.isMatched(func)) {
+                const auto func_name = func.getEnvelope().func_id;
                 if ((func_name != WAITANY && func_name != TESTANY) &&
-                        allAncestorsMatched(func, ancestors)) {
-                    result.push_back(func);
+                        allAncestorsMatched(func)) {
+                    result.push_back(func_ptr);
                 } else if ((func_name == WAITANY || func_name == TESTANY) &&
-                        anyAncestorMatched(func, ancestors)) {
-                    result.push_back(func);
+                        anyAncestorMatched(trace, func)) {
+                    result.push_back(func_ptr);
                 }
             }
             last--;
