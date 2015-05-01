@@ -211,7 +211,7 @@ void ITree::ProcessInterleaving () {
  * Whichever method that calls this will have
  * to make sure to clean up this returned edge to avoid memory leak */
 optional<shared_ptr<Transition> > ITree::findSendOfThisWait(shared_ptr<Transition> wait) {
-    auto & env = trans->getEnvelope();
+    auto & env = wait->getEnvelope();
     auto & state = GetCurrNode()->getState();
     optional<shared_ptr<Transition> > result;
     if (env.isWaitOrTestType()) {
@@ -225,15 +225,10 @@ optional<shared_ptr<Transition> > ITree::findSendOfThisWait(shared_ptr<Transitio
     return result;
 }
 
-/* going through all the tlist, return the max number of MPI calls
+/* going through all the traces, return the max number of MPI calls
  * Side effects: None */
 size_t ITree::getMaxTlistSize() {
-    size_t ret = GetCurrNode()->_tlist[0]->_tlist.size();
-    for (size_t i = 1; i < GetCurrNode()->_tlist.size(); i++) {
-        if (ret < GetCurrNode()->_tlist[i]->_tlist.size())
-            ret = GetCurrNode()->_tlist[i]->_tlist.size();
-    }
-    return ret;
+    return GetCurrNode()->getState().getMaxSize();
 }
 
 /* Return true if there exists a path from src to destination
