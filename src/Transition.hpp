@@ -96,14 +96,24 @@ struct Transition {
         is_issued = true;
     }
 
+    void addMatchedSends(shared_ptr<Transition> t) {
+        matched_sends.push_back(t);
+    }
+
+    bool inMatchedSends(const Transition &t) {
+        return contains(matched_sends, t);
+    }
+
 private:
     vector<weak_ptr<Transition> > ancestors;
     weak_ptr<Transition> curr_matching;
     unique_ptr<Envelope> envelope;
     vector<weak_ptr<Transition> > inter_cb;
     vector<weak_ptr<Transition> > intra_cb;
+    vector<weak_ptr<Transition> > matched_sends;
     bool is_matched = false;
     bool is_issued = false;
+
     /**
      * Tests if an element is in the vector.
      */
