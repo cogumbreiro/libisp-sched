@@ -552,29 +552,8 @@ void Scheduler::generateFirstInterleaving () {
         for (int i = 0 ; i < nprocs; i++) {
             if (_runQ[i]->_read_next_env) {
                 t = getTransition(i);
-                // IMPORTANT NOTE: the constant ISP_START_SAMPLING and
-                // ISP_END_SAMPLEING here should be corresponded to the
-                // ISP_START_SAMPLING and ISP_END_SAMPLING defined in isp.h
-                if (_fprs) {
-                    if (t->GetEnvelope()->func_id == PCONTROL && t->GetEnvelope()->stag == ISP_START_SAMPLING) {
-                        it->_is_exall_mode[i] = true;
-                    }
-                    if (t->GetEnvelope()->func_id == PCONTROL && t->GetEnvelope()->stag == ISP_END_SAMPLING) {
-                        it->_is_exall_mode[i] = false;
-                    }
-                }
                 if (!(it->GetCurrNode ())->_tlist[i]->AddTransition (t)) {
-                    ExitMpiProcessAndWait (true);
-
-                    if (!Scheduler::_quiet) {
-                        /* ISP expects the same transitions on restart
-                         * to ensure the correctness of DPOR
-                         * backtracking - If the program changes its
-                         * control flow path upon restarting, ISP will
-                         * not work */
-                        std::cout << "ERROR! TRANSITIONS ON RESTARTS NOT SAME!!!!\n";
-                    }
-                    exit (21);
+                    // XXX: exit (21);
                 }
 
                 /* Some memory leak can happen here if we're not in
