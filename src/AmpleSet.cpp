@@ -160,9 +160,8 @@ bool AmpleSet::genNonWildcardReceive() {
 vector<vector<shared_ptr<Transition> > > AmpleSet::createAllMatchingSends(shared_ptr<Transition> recv_ptr) {
     vector<vector<shared_ptr<Transition> > > result;
     auto & recv = *recv_ptr;
-    auto & sends = matcher.findMatchedSends(recv);
     for (auto send_ptr : reverse(funcs)) {
-        if (recv.canSend(*send_ptr) && (sends.find(send_ptr) == sends.end())) {
+        if (recv.canSend(*send_ptr) && recv.inMatchedSends(*send_ptr)) {
             vector<shared_ptr<Transition> > ml;
             ml.push_back(send_ptr);
             ml.push_back(recv_ptr);

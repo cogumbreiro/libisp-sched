@@ -1,7 +1,7 @@
 #ifndef _ENABLED_TRANSITIONS_HPP
 #define _ENABLED_TRANSITIONS_HPP
 
-#include "Matcher.hpp"
+#include "Transition.hpp"
 #include "State.hpp"
 
 struct EnabledTransitions {

@@ -21,7 +21,6 @@
 #include <memory>
 
 #include "Trace.hpp"
-#include "Matcher.hpp"
 #include "State.hpp"
 
 using std::vector;
@@ -30,16 +29,13 @@ using std::shared_ptr;
 struct AmpleSet {
 
 public:
-    AmpleSet(State &s, const Matcher & m, const vector<shared_ptr<Transition>> & f):
-        matcher(m),
+    AmpleSet(State &s, const vector<shared_ptr<Transition>> & f):
         state(s),
         funcs(f)
     {}
     vector<vector<shared_ptr<Transition> > > create();
 private:
     vector<vector<shared_ptr<Transition> > > ample_set;
-
-    const Matcher & matcher;
 
     State & state;
 
@@ -60,9 +56,9 @@ private:
     bool genAllSends();
 };
 
-inline vector<vector<shared_ptr<Transition> > > createAmpleSet(State& s, const Matcher & m,
+inline vector<vector<shared_ptr<Transition> > > createAmpleSet(State& s,
         const vector<shared_ptr<Transition> > & f) {
-    return AmpleSet(s, m, f).create();
+    return AmpleSet(s, f).create();
 }
 
 #endif

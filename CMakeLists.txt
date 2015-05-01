@@ -30,7 +30,6 @@ add_library(isp-sched
         src/Envelope.cpp src/Envelope.hpp
         src/Transition.hpp
         src/Trace.cpp src/Trace.hpp
-        src/Matcher.hpp
         src/State.hpp
         src/EnabledTransitions.cpp src/EnabledTransitions.hpp
         src/AmpleSet.cpp src/AmpleSet.hpp

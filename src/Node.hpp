@@ -32,7 +32,6 @@
 #include <boost/optional.hpp>
 
 #include "Trace.hpp"
-#include "Matcher.hpp"
 #include "State.hpp"
 #include "EnabledTransitions.hpp"
 #include "AmpleSet.hpp"
@@ -52,7 +51,7 @@ enum NTYPE {
 
 struct Node {
 
-    Node(unique_ptr<State> s, bool h, const Matcher & m, NTYPE t):/*has_child(h),*/ matcher(m),
+    Node(unique_ptr<State> s, bool h, NTYPE t):
     state(std::move(s)),
     type(t),
     enabledTransitions(EnabledTransitions(*s))//,
@@ -83,7 +82,6 @@ private:
     unique_ptr<State> state;
 //    int _level;
 //    int _num_procs;
-    const Matcher & matcher;
 
     const EnabledTransitions enabledTransitions;
 };
