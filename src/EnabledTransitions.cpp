@@ -19,7 +19,7 @@ using boost::adaptors::indirect;
 using boost::adaptors::reversed;
 
 bool EnabledTransitions::allAncestorsMatched(const Transition & func) const {
-    bool is_wait_or_test_type = func.getEnvelope().isWaitorTestType();
+    bool is_wait_or_test_type = func.getEnvelope().isWaitOrTestType();
     auto pid = func.pid;
     for (auto & curr : indirect(func.getAncestors())) {
         auto curr_env = curr.getEnvelope();
@@ -52,7 +52,7 @@ bool EnabledTransitions::allAncestorsMatched(const Transition & func) const {
 bool EnabledTransitions::anyAncestorMatched (const Trace & trace, const Transition & func) const {
     bool any_match = false;
 
-    bool is_wait_or_test_type = func.getEnvelope().isWaitorTestType();
+    bool is_wait_or_test_type = func.getEnvelope().isWaitOrTestType();
     if (is_wait_or_test_type && func.getAncestors().empty()) {
         return true;
     }

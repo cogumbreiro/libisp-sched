@@ -105,7 +105,7 @@ public:
                 || func_id == WAITALL || func_id == TESTALL || isCollectiveType());
     }
 
-    inline bool isWaitorTestType () const {
+    inline bool isWaitOrTestType () const {
         return (func_id == WAIT || func_id == TEST
                 || func_id == WAITANY || func_id == TESTANY
                 || func_id == WAITALL || func_id == TESTALL

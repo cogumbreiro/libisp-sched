@@ -47,7 +47,7 @@ private:
 
     bool genCollectiveAmple(int collective);
 
-    bool genWaitorTestAmple();
+    bool genWaitOrTestAmple();
 
     bool genReceiveAmple();
 

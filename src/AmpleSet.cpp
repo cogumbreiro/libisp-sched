@@ -23,11 +23,11 @@ using boost::adaptors::reverse;
 using boost::optional;
 using std::vector;
 
-bool AmpleSet::genWaitorTestAmple() {
+bool AmpleSet::genWaitOrTestAmple() {
     assert(ample_set.empty());
     vector<shared_ptr<Transition>> blist;
     for (auto & func : funcs) {
-        if (func->getEnvelope().isWaitorTestType()) {
+        if (func->getEnvelope().isWaitOrTestType()) {
             blist.push_back(func);
         }
     }
@@ -240,7 +240,7 @@ vector<vector<shared_ptr<Transition> > > AmpleSet::create() {
             return ample_set;
         }
     }
-    genWaitorTestAmple() ||
+    genWaitOrTestAmple() ||
     genReceiveAmple() ||
     genTestIProbe();
     return ample_set;
