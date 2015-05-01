@@ -92,6 +92,10 @@ struct Transition {
         return is_issued;
     }
 
+    inline void setIssued() {
+        is_issued = true;
+    }
+
 private:
     vector<weak_ptr<Transition> > ancestors;
     weak_ptr<Transition> curr_matching;
