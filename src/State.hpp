@@ -10,6 +10,7 @@
 #include <vector>
 #include <memory>
 #include <utility>
+#include <algorithm>
 #include <boost/range/adaptor/reversed.hpp>
 #include <boost/range/adaptor/indirected.hpp>
 
@@ -65,8 +66,16 @@ public:
         return traces[child.pid]->getRequestedProcs(child);
     }
 
+    unsigned int getMaxSize() {
+        unsigned int size = 0;
+        for (Trace & trace : indirect(traces)) {
+            size = std::max(trace.size(), size);
+        }
+        return size;
+    }
+
 private:
-    vector <unique_ptr<Trace>> traces;
+    vector<unique_ptr<Trace>> traces;
 };
 
 #endif
