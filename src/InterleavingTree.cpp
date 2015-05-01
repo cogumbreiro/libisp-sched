@@ -52,7 +52,7 @@ void ITree::ResetMatchingInfo() {
         last_matched[j] = -1;
 }
 
-Node *ITree::GetCurrNode () {
+Node *ITree::GetCurrNode () const {
     assert((int)depth < (int)_slist.size());
     return _slist[depth];
 }
@@ -210,12 +210,12 @@ void ITree::ProcessInterleaving () {
  * if this Wait/Waitall is for a send request, return NULL otherwise.
  * Whichever method that calls this will have
  * to make sure to clean up this returned edge to avoid memory leak */
-optional<shared_ptr<Transition> > ITree::findSendOfThisWait(shared_ptr<Transition> wait) {
-    auto & env = wait->getEnvelope();
+optional<shared_ptr<Transition> > ITree::findSendOfThisWait(const Transition& wait) const {
+    auto & env = wait.getEnvelope();
     auto & state = GetCurrNode()->getState();
     optional<shared_ptr<Transition> > result;
     if (env.isWaitOrTestType()) {
-        for (auto send : state.getRequestedProcs(*wait)) {
+        for (auto send : state.getRequestedProcs(wait)) {
             if (send->getEnvelope().isSendType()) {
                 result.reset(send);
                 return result;
@@ -239,61 +239,41 @@ size_t ITree::getMaxTlistSize() {
  * We're using BFS here, because DFS would result in a very deep
  * recursion.
  */
-bool ITree::FindNonSendWaitPath (bool ** visited, CB &src, CB &dest) {
-
+bool ITree::FindNonSendWaitPath(shared_ptr<Transition> src, shared_ptr<Transition> dest) {
     if (src == dest)
         return true;
-    if (src._pid == dest._pid && src._index > dest._index)
+    if (src->pid == dest->pid && src->index > dest->index)
         return false;
 
-    vector <CB>::iterator iter;
-    vector <CB>::iterator iter_end;
-    std::queue <CB> worklist;
-    CB current(0,0);
-
-    /* initialize the visited array */
-    for (int i = 0; i < GetCurrNode()->NumProcs(); i++) {
-        for (size_t j = 0; j < getMaxTlistSize(); j ++)
-            visited[i][j] = false;
-    }
-
+    std::queue<shared_ptr<Transition> > worklist;
+    std::set<shared_ptr<Transition> > visited;
 
     /* doing a BFS search */
     worklist.push(src);
 
-    while (!worklist.empty()) {
-        CB c;
-        current = worklist.front();
+    while (worklist.size() > 0) {
+        auto current = worklist.front();
         worklist.pop();
         if (current == dest) {
             return true;
         }
-        visited[current._pid][current._index]= true;
+        visited.insert(current);
         /* now add all the intraCB edges of current into the worklist */
-        Transition t = *GetCurrNode()->GetTransition(current);
-        iter = t.get_intra_cb().begin();
-        iter_end = t.get_intra_cb().end();
-        for (; iter != iter_end; iter++) {
-            if (findSendOfThisWait(c, *iter)) {
-                visited[iter->_pid][iter->_index] = true;
-            }
-            if (!visited[iter->_pid][iter->_index]) {
-                worklist.push(*iter);
-                visited[iter->_pid][iter->_index] = true;
-
+        for (auto intra : current->getIntraCB()) {
+            if (auto send = findSendOfThisWait(*intra)) {
+                visited.insert(intra);
+            } else if (visited.find(intra) == visited.end()) {
+                worklist.push(intra);
+                visited.insert(intra);
             }
         }
         /* now add all the interCB edges of current into the worklist */
-        iter = t.get_inter_cb().begin();
-        iter_end = t.get_inter_cb().end();
-        for (; iter != iter_end; iter++) {
-            if (findSendOfThisWait(c, *iter)) {
-                visited[iter->_pid][iter->_index] = true;
-            }
-
-            if (!visited[iter->_pid][iter->_index]) {
-                worklist.push(*iter);
-                visited[iter->_pid][iter->_index] = true;
+        for (auto inter : current->getInterCB()) {
+            if (auto send = findSendOfThisWait(*inter)) {
+                visited.insert(inter);
+            } else if (visited.find(inter) == visited.end()) {
+                worklist.push(inter);
+                visited.insert(inter);
             }
         }
     }

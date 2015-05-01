@@ -34,7 +34,7 @@ class ITree {
 public:
     ITree (Node *, std::string);
     int CHECK (std::list <int> &);
-    Node *GetCurrNode ();
+    Node *GetCurrNode () const;
     bool NextInterleaving ();
     void resetDepth ();
     void ResetMatchingInfo();
@@ -64,8 +64,8 @@ private:
     void AddInterCB();
     void ClearInterCB();
     void FindCoEnabledSends();
-    bool FindNonSendWaitPath(bool **visited, CB &src, CB &dest);
-    optional<shared_ptr<Transition> > findSendOfThisWait(shared_ptr<Transition>);
+    bool FindNonSendWaitPath(shared_ptr<Transition> src, shared_ptr<Transition> dest);
+    optional<shared_ptr<Transition> > findSendOfThisWait(const Transition &) const;
 
     size_t getMaxTlistSize();
 };
