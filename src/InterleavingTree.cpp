@@ -282,35 +282,23 @@ bool ITree::FindNonSendWaitPath(shared_ptr<Transition> src, shared_ptr<Transitio
 }
 
 void ITree::FindCoEnabledSends () {
-    vector <Node *>::iterator iter;
-    vector <Node *>::iterator iter_end = _slist.end ();
+    /* keep visited CB edges here */
+    std::set<shared_ptr<Transition> > visited;
 
-    /* keep visited CB edges here
-     * This array will be used by FindNonSenWait
-     * We don't want to alloc/re-alloc too many times
-     */
-    bool** visited = new bool* [GetCurrNode()->NumProcs()];
-    for (int i = 0; i < GetCurrNode()->NumProcs(); i++) {
-        visited[i] = new bool [getMaxTlistSize()];
-    }
-
-    for (iter = _slist.begin (); iter != iter_end-1; iter++) {
-        Node *n = (*iter);
-
+    // all but the last one
+    for (auto n : _slist) {
         /* Only care about nodes with wild card receive */
         if (!n->isWildcardNode()) continue;
 
-        CB send = n->ample_set.front().front();
-
-        std::set <CB> *prev_sends = &matched_sends[n->wildcard];
-        prev_sends->insert(send);
+        auto send = n->ample_set.front().front();
+        n->wildcard.addSendsMatch(&send);
         std::map <CB, std::list <CB> >::iterator csi = aux_coenabled_sends.find(n->wildcard);
         if(csi != aux_coenabled_sends.end())
             csi->second.remove(send);
 
-        Envelope *renv = GetCurrNode ()->GetTransition ((n->wildcard))->GetEnvelope ();
-        for (int i = 0 ; i < n->NumProcs (); i++) {
-            if (i == n->wildcard._pid) {
+        auto renv = n->wildcard.getEnvelope();
+        for (int i = 0 ; i < n->getNumProcs(); i++) {
+            if (i == n->wildcard.pid) {
                 continue;
             }
             size_t tlist_size = GetCurrNode()->_tlist[i]->_tlist.size();
@@ -338,7 +326,7 @@ void ITree::FindCoEnabledSends () {
                                 get_curr_matching()._pid);
 
                         if (overtaking ||
-                            FindNonSendWaitPath (visited, n->wildcard, c)) {
+                            FindNonSendWaitPath(n->wildcard, c)) {
                             break;
                         } else {
                             if(prev_sends->find(c) == prev_sends->end()) {
@@ -355,11 +343,6 @@ void ITree::FindCoEnabledSends () {
             }
         }
     }
-    /* freeing memory */
-    for (int i = 0; i < GetCurrNode()->NumProcs(); i++) {
-        delete [] visited[i];
-    }
-    delete [] visited;
 }
 
 void ITree::ClearInterCB () {
