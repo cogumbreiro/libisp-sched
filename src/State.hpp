@@ -61,6 +61,10 @@ public:
         traces[ptr->pid]->setMatched(ptr);
     }
 
+    vector<shared_ptr<Transition> > getRequestedProcs(const Transition &child) const {
+        return traces[child.pid]->getRequestedProcs(child);
+    }
+
 private:
     vector <unique_ptr<Trace>> traces;
 };
