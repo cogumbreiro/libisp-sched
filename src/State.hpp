@@ -53,14 +53,6 @@ public:
         return make_indirect_iterator(traces.end());
     }
 
-    inline auto cbegin() const {
-        return make_indirect_iterator(traces.cbegin());
-    }
-
-    inline auto cend() const {
-        return make_indirect_iterator(traces.cend());
-    }
-
     inline shared_ptr<Transition> getLast(int pid) const {
         return traces[pid]->getLast();
     }
