@@ -183,6 +183,49 @@ int ITree::CHECK (/*ServerSocket &sock, */std::list <int> &l) {
     return 0;
 }
 
+void ITree::AddInterCB () {
+    vector <Node *>::iterator iter;
+    vector <Node *>::iterator iter_end = _slist.end ();
+
+    for (iter = _slist.begin(); iter != iter_end; iter++) {
+        if ((*iter)->ample_set.size() == 0) {
+            continue;
+        }
+        std::list <CB> mset = (*iter)->ample_set.front();
+
+        if (mset.size() <= 1) {
+            continue;
+        }
+        if (mset.size() == 2) {
+            Envelope *e = (*iter)->GetTransition (mset.back())->GetEnvelope ();
+            if ((e->func_id == IRECV || e->func_id == RECV) &&
+                                                    e->src == WILDCARD) {
+                GetCurrNode()->GetTransition(mset.back())->AddInterCB(mset.front());
+                continue;
+            }
+        }
+        std::list <CB>::iterator it1;
+        std::list <CB>::iterator it_end = mset.end();
+        bool only_sends = true;
+        for (it1 = mset.begin(); it1 != it_end ; it1++) {
+            if (! (*iter)->GetTransition(*it1)->GetEnvelope()->isSendType())
+                only_sends = false;
+        }
+        if (only_sends)
+            continue;
+
+        for (it1 = mset.begin(); it1 != it_end ; it1++) {
+            std::list <CB>::iterator it2;
+            std::list <CB>::iterator it2_end = mset.end();
+            for (it2 = mset.begin(); it2 != it2_end ; it2++) {
+                if (it2 != it1) {
+                    GetCurrNode()->GetTransition(*it1)->AddInterCB(*it2);
+                }
+            }
+        }
+    }
+}
+
 /* This method is called at the end of each interleaving
  * The following task is accomplished:
  * Add the interCB edges to all the nodes
@@ -352,49 +395,6 @@ void ITree::ClearInterCB () {
         for (unsigned int j = 0;  j < n->_tlist[i]->_tlist.size(); j++) {
             vector<CB>::iterator iter;
             n->_tlist[i]->_tlist[j].mod_inter_cb().clear();
-        }
-    }
-}
-
-void ITree::AddInterCB () {
-    vector <Node *>::iterator iter;
-    vector <Node *>::iterator iter_end = _slist.end ();
-
-    for (iter = _slist.begin(); iter != iter_end; iter++) {
-        if ((*iter)->ample_set.size() == 0) {
-            continue;
-        }
-        std::list <CB> mset = (*iter)->ample_set.front();
-
-        if (mset.size() <= 1) {
-            continue;
-        }
-        if (mset.size() == 2) {
-            Envelope *e = (*iter)->GetTransition (mset.back())->GetEnvelope ();
-            if ((e->func_id == IRECV || e->func_id == RECV) &&
-                                                    e->src == WILDCARD) {
-                GetCurrNode()->GetTransition(mset.back())->AddInterCB(mset.front());
-                continue;
-            }
-        }
-        std::list <CB>::iterator it1;
-        std::list <CB>::iterator it_end = mset.end();
-        bool only_sends = true;
-        for (it1 = mset.begin(); it1 != it_end ; it1++) {
-            if (! (*iter)->GetTransition(*it1)->GetEnvelope()->isSendType())
-                only_sends = false;
-        }
-        if (only_sends)
-            continue;
-
-        for (it1 = mset.begin(); it1 != it_end ; it1++) {
-            std::list <CB>::iterator it2;
-            std::list <CB>::iterator it2_end = mset.end();
-            for (it2 = mset.begin(); it2 != it2_end ; it2++) {
-                if (it2 != it1) {
-                    GetCurrNode()->GetTransition(*it1)->AddInterCB(*it2);
-                }
-            }
         }
     }
 }
