@@ -38,7 +38,6 @@ bool EnabledTransitions::allAncestorsMatched(const Transition & func) const {
                    curr_func == TEST ||
                    curr_func == WAITALL ||
                    curr_func == TESTALL) {
-
             for (auto & anc : indirect(curr.getAncestors())) {
                 if (!anc.isMatched() && curr_env.matchSend(anc.getEnvelope())) {
                     return false;
@@ -89,7 +88,6 @@ vector<shared_ptr<Transition> > EnabledTransitions::create() const {
         int last = trace.size() - 1;
         for (auto func_ptr : trace.reverse()) {
             auto & func = *func_ptr;
-            auto pid = func.pid;
             if (!func.isMatched()) {
                 const auto func_name = func.getEnvelope().func_id;
                 if ((func_name != WAITANY && func_name != TESTANY) &&
