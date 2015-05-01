@@ -19,9 +19,14 @@
 #include <iterator>
 #include <list>
 #include <cassert>
+#include <memory>
+#include <boost/optional.hpp>
 
 #include "CB.hpp"
-//#include "TransitionList.hpp"
+#include "Transition.hpp"
+
+using boost::optional;
+using std::shared_ptr;
 
 class Node;
 
@@ -60,7 +65,7 @@ private:
     void ClearInterCB();
     void FindCoEnabledSends();
     bool FindNonSendWaitPath(bool **visited, CB &src, CB &dest);
-    bool findSendOfThisWait(CB& res, CB& c);
+    optional<shared_ptr<Transition> > findSendOfThisWait(shared_ptr<Transition>);
 
     size_t getMaxTlistSize();
 };

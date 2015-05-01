@@ -19,6 +19,7 @@
 #include "Node.hpp"
 
 using std::vector;
+using boost::optional;
 
 /*
 ITree::ITree (Node *n, std::string name) {
@@ -144,15 +145,15 @@ int ITree::CHECK (/*ServerSocket &sock, */std::list <int> &l) {
         if (!probe_flag || !env.isSendType()) {
             n->getState().setMatched(curr);
         }
-
+        curr->setIssued();
+        #if 0
         /* if the call has been issued earlier, do not issue it again */
         /* What happens here: If we issue a pair of Send/Probe, do
          * not allow the scheduler to read the next envelope of
          * the Send process. If we issue a pair of Send/Recv, allow the
          * scheduler to read the next envelope of the send process */
-
-        if (is_issued[iter->_pid][iter->_index]) {
-            if (env->isSendType() && env->isBlockingType() /*XXX: && !Scheduler::_probed*/) {
+        if (curr->isIssued()) {
+            if (env.isSendType() && env.isBlockingType() /*XXX: && !Scheduler::_probed*/) {
                 Scheduler::_runQ[iter->_pid]->_read_next_env = true;
             }
             continue;
@@ -161,22 +162,23 @@ int ITree::CHECK (/*ServerSocket &sock, */std::list <int> &l) {
 
         oss << goahead << " " << env->index << " " << source;
 
-        env->issue();
-        if (env->func_id == COMM_CREATE || env->func_id == COMM_DUP
-            || env->func_id == CART_CREATE || env->func_id == COMM_SPLIT) {
+        //XXX: env->issue();
+        if (env.func_id == COMM_CREATE || env.func_id == COMM_DUP
+            || env.func_id == CART_CREATE || env.func_id == COMM_SPLIT) {
             oss << " " << env->comm_id;
         } else {
             oss << " " << 0;
         }
 
-        if (env-> isBlockingType ()) {
+        if (env.isBlockingType()) {
             oss << " " << 2 ;
-            l.push_back (iter->_pid);
+            l.push_back(curr->pid);
         } else {
             oss << " " << 1 ;
         }
-        sock.Send (iter->_pid, oss.str());
-        is_issued[iter->_pid][iter->_index]= true;
+        sock.Send(curr->pid, oss.str());
+        curr.setIssued();
+        #endif
     }
     return 0;
 }
@@ -203,23 +205,24 @@ void ITree::ProcessInterleaving () {
     }
 }
 
-/* Precond: c has to be of type Wait or Test
- * Return a CB edge that points to a send
+/* Precond: wait has to be of type Wait or Test
+ * Return a transition that points to a send
  * if this Wait/Waitall is for a send request, return NULL otherwise.
  * Whichever method that calls this will have
  * to make sure to clean up this returned edge to avoid memory leak */
-bool ITree::findSendOfThisWait (CB &res, CB &c) {
-    Envelope *e = GetCurrNode ()->GetTransition (c)->GetEnvelope ();
-    if (e->isWaitorTestType ()) {
-        for (unsigned int i = 0 ; i < e->req_procs.size (); i++) {
-            CB wc (c._pid, e->req_procs[i]);
-            if (GetCurrNode()->GetTransition(wc)->GetEnvelope()->isSendType()) {
-                res = wc;
-                return true;
+optional<shared_ptr<Transition> > ITree::findSendOfThisWait(shared_ptr<Transition> wait) {
+    auto & env = trans->getEnvelope();
+    auto & state = GetCurrNode()->getState();
+    optional<shared_ptr<Transition> > result;
+    if (env.isWaitOrTestType()) {
+        for (auto send : state.getRequestedProcs(*wait)) {
+            if (send->getEnvelope().isSendType()) {
+                result.reset(send);
+                return result;
             }
         }
     }
-    return false;
+    return result;
 }
 
 /* going through all the tlist, return the max number of MPI calls
