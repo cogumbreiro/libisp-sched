@@ -28,11 +28,11 @@ bool Trace::add(std::unique_ptr<Envelope> env) {
     // check if already in the list
     if (index <= size() - 1) {
         // return true only when the envelopes match
-        return tlist[index]->getEnvelope() == *env;
+        return trace[index]->getEnvelope() == *env;
     }
     // otherwise append to the list
     auto last_op = make_shared<Transition>(pid, size() - 1, move(env));
-    tlist.push_back(last_op);
+    trace.push_back(last_op);
     auto env_t = last_op->getEnvelope();
 
     bool blocking_flag = false;
@@ -42,7 +42,7 @@ bool Trace::add(std::unique_ptr<Envelope> env) {
     } else if (env_t.func_id == OpType::WAIT || env_t.func_id == OpType::WAITALL ||
                env_t.func_id == OpType::TEST || env_t.func_id == OpType::TESTALL) {
         for (auto & req : env_t.req_procs) {
-            auto curr = tlist[req];
+            auto curr = trace[req];
             if (curr->addIntraCB(last_op)) {
                 last_op->addAncestor(curr);
             }
@@ -64,7 +64,7 @@ bool Trace::add(std::unique_ptr<Envelope> env) {
                 auto env_f = curr.getEnvelope();
                 if (env_f.func_id == OpType::IRECV) {
                     if (curr.addIntraCB(last_op)) {
-                        last_op->addAncestor(tlist[i]);
+                        last_op->addAncestor(trace[i]);
                     }
 
                     //terminate if this satisfies the Irecv intraCB rule
@@ -73,7 +73,7 @@ bool Trace::add(std::unique_ptr<Envelope> env) {
                     }
                 } else if (env_f.func_id == OpType::ISEND) {
                     if (curr.addIntraCB(last_op)) {
-                        last_op->addAncestor(tlist[i]);
+                        last_op->addAncestor(trace[i]);
                     }
 
                     //terminate if this satisfies the Isend intraCB rule
@@ -83,7 +83,7 @@ bool Trace::add(std::unique_ptr<Envelope> env) {
                 }
             } else {
                 if (curr.addIntraCB(last_op)) {
-                    last_op->addAncestor(tlist[i]);
+                    last_op->addAncestor(trace[i]);
                 }
 
                 /* avo 06/11/08 - trying not to add redundant edges */

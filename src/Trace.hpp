@@ -40,31 +40,31 @@ public:
 
     Trace(int p) : pid(p) {}
 
-    inline unsigned int size() const { return tlist.size(); }
+    inline unsigned int size() const { return trace.size(); }
 
-    inline Transition & get(int index) const { return *tlist[index]; }
+    inline Transition & get(int index) const { return *trace[index]; }
 
-    inline shared_ptr<Transition> getLast() const { return tlist.back(); }
+    inline shared_ptr<Transition> getLast() const { return trace.back(); }
 
     bool add(unique_ptr<Envelope> t);
 
-    inline auto begin() { return tlist.begin(); }
+    inline auto begin() { return trace.begin(); }
 
-    inline auto end() { return tlist.end(); }
+    inline auto end() { return trace.end(); }
 
-    inline auto begin() const { return tlist.begin(); }
+    inline auto begin() const { return trace.begin(); }
 
-    inline auto end() const { return tlist.end(); }
+    inline auto end() const { return trace.end(); }
 
     auto reverse() {
-        return boost::adaptors::reverse(tlist);
+        return boost::adaptors::reverse(trace);
     }
 
     vector<shared_ptr<Transition> > getRequestedProcs(const Transition &child) const {
         assert(child.pid == pid);
         vector<shared_ptr<Transition> > result;
         for (auto req_proc : child.getEnvelope().req_procs) {
-            result.push_back(tlist[req_proc]);
+            result.push_back(trace[req_proc]);
         }
         return result;
     }
@@ -86,7 +86,7 @@ public:
         return result;
     }
 private:
-    vector<shared_ptr<Transition> > tlist;
+    vector<shared_ptr<Transition> > trace;
 
     list<int> ulist;
 };
