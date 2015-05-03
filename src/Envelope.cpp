@@ -95,12 +95,12 @@ bool Envelope::operator!= (const Envelope &e) const {
     return !((*this) == e);
 }
 
-bool operator<(const Envelope &lhs, const Envelope &rhs) {
+bool Envelope::completesBefore(const Envelope &rhs) const {
     /*
      * Find Intra-Completes-Before :
      * 1) Blocking rule
      */
-    if (lhs.isBlockingType()) {
+    if (isBlockingType()) {
         return true;
     }
 
@@ -108,52 +108,47 @@ bool operator<(const Envelope &lhs, const Envelope &rhs) {
      * 2) Send order rule
      */
 
-    if (lhs.isSendType () &&
+    if (isSendType () &&
         rhs.isSendType () &&
-        lhs.dest == rhs.dest &&
-        lhs.comm == rhs.comm &&
-        lhs.stag == rhs.stag) {
+        dest == rhs.dest &&
+        comm == rhs.comm &&
+        stag == rhs.stag) {
         return true;
     }
     /*
      * 3) Recv order rule
      */
-    if (lhs.isRecvType () &&
+    if (isRecvType () &&
         rhs.isRecvType () &&
-        (lhs.src == rhs.src ||
-         lhs.src == WILDCARD) &&
-        lhs.comm == rhs.comm &&
-        (lhs.rtag == rhs.rtag ||
-         lhs.rtag == WILDCARD)) {
+        (src == rhs.src ||
+         src == WILDCARD) &&
+        comm == rhs.comm &&
+        (rtag == rhs.rtag ||
+         rtag == WILDCARD)) {
         return true;
     }
 
     /*
      * 4) iRecv -> Wait order rule
      */
-    if (lhs.func_id == OpType::IRECV &&
+    if (func_id == OpType::IRECV &&
             ((rhs.func_id == OpType::WAIT) ||
              (rhs.func_id == OpType::TEST)) &&
-            lhs.count == rhs.count) {
+            count == rhs.count) {
         return true;
     }
 
-    if (lhs.func_id == OpType::ISEND &&
+    if (func_id == OpType::ISEND &&
             ((rhs.func_id == OpType::WAIT) ||
              (rhs.func_id == OpType::TEST)) &&
-            lhs.count == rhs.count) {
+            count == rhs.count) {
         return true;
     }
 
     if ((rhs.isWaitType() || rhs.isTestType()) &&
-            (lhs.func_id == OpType::IRECV ||
-             lhs.func_id == OpType::ISEND)) {
-
-        for (int i = 0 ; i < rhs.count ; i++) {
-            if (rhs.req_procs[i] == lhs.index) {
-                return true;
-            }
-        }
+            (func_id == OpType::IRECV ||
+            func_id == OpType::ISEND) && rhs.requested(index)) {
+        return true;
     }
 
     if (rhs.func_id == OpType::FINALIZE) {

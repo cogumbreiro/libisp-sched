@@ -22,6 +22,8 @@
 #define _ENVELOPE_HPP
 
 #include <vector>
+#include <set>
+
 #include "name2id.hpp"
 
 using std::string;
@@ -51,7 +53,7 @@ public:
     string         comm;
     int					data_type; //CGD
     std::vector<int>    comm_list;
-    std::vector<int>    req_procs;
+    std::set<int> req_procs;
 
     int                 rtag;
     int                 nprocs;
@@ -146,10 +148,15 @@ public:
             dest == recv.src &&
             (stag == recv.rtag || recv.rtag == WILDCARD);
     }
+
+    bool requested(int index) const {
+        return req_procs.find(index) != req_procs.end();
+    }
+
     /**
      * Defines the Intra-CB relation
      */
-    friend bool operator<(const Envelope &lhs, const Envelope &rhs);
+     bool completesBefore(const Envelope &rhs) const;
 };
 
 #endif

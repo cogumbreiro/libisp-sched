@@ -52,7 +52,7 @@ bool Trace::add(std::unique_ptr<Envelope> env) {
 
     int i = size() - 2;
     for (auto & curr : indirect(reverse())) {
-        if (curr.getEnvelope() < env_t) {
+        if (curr.getEnvelope().completesBefore(env_t)) {
             if (blocking_flag) {
                 if (env_t.func_id != OpType::SEND &&
                         (ulist.size() == 0 || index < ulist.front())) {

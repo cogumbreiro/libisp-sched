@@ -150,6 +150,14 @@ private:
         return !contains(intra_cb, *other)  && !contains(inter_cb, *other);
     }
 
+    /**
+     * Defines the Intra-CB relation.
+     */
+    bool completesBefore(const Transition &rhs) const {
+        return pid == rhs.pid
+            && index < rhs.index
+            && envelope->completesBefore(*rhs.envelope);
+    }
 };
 
 #endif
