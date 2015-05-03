@@ -27,7 +27,7 @@ bool AmpleSet::genWaitOrTestAmple() {
     assert(ample_set.empty());
     vector<shared_ptr<Transition>> blist;
     for (auto & func : funcs) {
-        if (func->getEnvelope().isWaitOrTestType()) {
+        if (func->getEnvelope().isWaitType() || func->getEnvelope().isTestType()) {
             blist.push_back(func);
         }
     }
