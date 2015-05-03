@@ -94,3 +94,71 @@ bool Envelope::operator== (const Envelope &e) const {
 bool Envelope::operator!= (const Envelope &e) const {
     return !((*this) == e);
 }
+
+bool operator<(const Envelope &lhs, const Envelope &rhs) {
+    /*
+     * Find Intra-Completes-Before :
+     * 1) Blocking rule
+     */
+    if (lhs.isBlockingType()) {
+        return true;
+    }
+
+    /*
+     * 2) Send order rule
+     */
+
+    if (lhs.isSendType () &&
+        rhs.isSendType () &&
+        lhs.dest == rhs.dest &&
+        lhs.comm == rhs.comm &&
+        lhs.stag == rhs.stag) {
+        return true;
+    }
+    /*
+     * 3) Recv order rule
+     */
+    if (lhs.isRecvType () &&
+        rhs.isRecvType () &&
+        (lhs.src == rhs.src ||
+         lhs.src == WILDCARD) &&
+        lhs.comm == rhs.comm &&
+        (lhs.rtag == rhs.rtag ||
+         lhs.rtag == WILDCARD)) {
+        return true;
+    }
+
+    /*
+     * 4) iRecv -> Wait order rule
+     */
+    if (lhs.func_id == OpType::IRECV &&
+            ((rhs.func_id == OpType::WAIT) ||
+             (rhs.func_id == OpType::TEST)) &&
+            lhs.count == rhs.count) {
+        return true;
+    }
+
+    if (lhs.func_id == OpType::ISEND &&
+            ((rhs.func_id == OpType::WAIT) ||
+             (rhs.func_id == OpType::TEST)) &&
+            lhs.count == rhs.count) {
+        return true;
+    }
+
+    if ((rhs.isWaitType() || rhs.isTestType()) &&
+            (lhs.func_id == OpType::IRECV ||
+             lhs.func_id == OpType::ISEND)) {
+
+        for (int i = 0 ; i < rhs.count ; i++) {
+            if (rhs.req_procs[i] == lhs.index) {
+                return true;
+            }
+        }
+    }
+
+    if (rhs.func_id == OpType::FINALIZE) {
+        return true;
+    }
+
+    return false;
+}

@@ -89,8 +89,6 @@ private:
     vector<shared_ptr<Transition> > tlist;
 
     list<int> ulist;
-
-    bool intraCB (const Transition &f, const Transition &s) const;
 };
 
 #endif

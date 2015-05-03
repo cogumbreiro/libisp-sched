@@ -125,10 +125,6 @@ public:
                 );
     }
 
-    inline bool isWaitOrTestType () const {
-        return isWaitType() || isTestType();
-    }
-
     inline bool matchRecv(const Envelope & other) const {
         return isRecvType() &&
             other.isRecvType() &&
@@ -150,5 +146,10 @@ public:
             dest == recv.src &&
             (stag == recv.rtag || recv.rtag == WILDCARD);
     }
+    /**
+     * Defines the Intra-CB relation
+     */
+    friend bool operator<(const Envelope &lhs, const Envelope &rhs);
 };
+
 #endif
