@@ -11,15 +11,7 @@
  */
 
 #include "Envelope.hpp"
-/*
-#include <sstream>
-#include <iostream>
-#include <stdlib.h>
-#include <assert.h>
 
-using std::unique_ptr;
-using std::string;
-*/
 Envelope::Envelope() {
     dest = 0;
     dest_wildcard = false;
@@ -61,6 +53,7 @@ bool Envelope::operator== (const Envelope &e) const {
     case OpType::TESTANY:
     case OpType::WAITALL:
     case OpType::TESTALL:
+    case OpType::STARTALL:
         return (count == e.count);
 
     case OpType::SEND:
@@ -83,9 +76,6 @@ bool Envelope::operator== (const Envelope &e) const {
 
     case OpType::PCONTROL:
         return (e.stag == stag);
-
-    case OpType::STARTALL:
-        return (e.count == count);
 
     case OpType::SENDRECV:
         return (e.src == src && dest == e.dest
