@@ -38,7 +38,7 @@ bool AmpleSet::genWaitOrTestAmple() {
     return false;
 }
 
-bool AmpleSet::genCollectiveAmple(int collective) {
+bool AmpleSet::genCollectiveAmple(OpType collective) {
     assert(ample_set.empty());
 
     vector<shared_ptr<Transition> > blist;
@@ -50,7 +50,7 @@ bool AmpleSet::genCollectiveAmple(int collective) {
         }
     }
 
-    if (collective == FINALIZE) {
+    if (collective == OpType::FINALIZE) {
         if ((int)blist.size() == state.num_procs) {
             ample_set.push_back(blist);
             return true;
@@ -64,9 +64,9 @@ bool AmpleSet::genCollectiveAmple(int collective) {
                 flist.push_back(func2);
             }
         }
-        if ((collective == BCAST || collective == GATHER ||
-             collective == SCATTER || collective == SCATTERV ||
-             collective == GATHERV || collective == REDUCE) && flist.size() > 0) {
+        if ((collective == OpType::BCAST || collective == OpType::GATHER ||
+             collective == OpType::SCATTER || collective == OpType::SCATTERV ||
+             collective == OpType::GATHERV || collective == OpType::REDUCE) && flist.size() > 0) {
             int root = (*flist.begin())->getEnvelope().count;
             for (auto func2 : flist) {
                 int other_root = func2->getEnvelope().count;
@@ -77,11 +77,11 @@ bool AmpleSet::genCollectiveAmple(int collective) {
             }
         }
 
-        if (collective == COMM_CREATE || collective == COMM_DUP ||
-            collective == CART_CREATE || collective == COMM_SPLIT) {
+        if (collective == OpType::COMM_CREATE || collective == OpType::COMM_DUP ||
+            collective == OpType::CART_CREATE || collective == OpType::COMM_SPLIT) {
             /* 0 = COMM_WORLD, 1 = COMM_SELF, 2 = COMM_NULL */
             static int comm_id = 3;
-            if (collective == COMM_SPLIT) {
+            if (collective == OpType::COMM_SPLIT) {
                 std::map<int, int> colorcount;
 
                 /* Mark which colors are being used in the map. */
@@ -203,10 +203,10 @@ bool AmpleSet::genTestIProbe() {
         auto last_ptr = state.getLast(pid);
         auto & last = *last_ptr;
         //const auto & last = transitions.get(last_func.handle);
-        if (last.getEnvelope().func_id == TEST ||
-                last.getEnvelope().func_id == TESTALL ||
-                last.getEnvelope().func_id == TESTANY ||
-                last.getEnvelope().func_id == IPROBE) {
+        if (last.getEnvelope().func_id == OpType::TEST ||
+                last.getEnvelope().func_id == OpType::TESTALL ||
+                last.getEnvelope().func_id == OpType::TESTANY ||
+                last.getEnvelope().func_id == OpType::IPROBE) {
             test_list.push_back(last_ptr);
 
             //Need to clean up the CB edge here
@@ -229,13 +229,16 @@ bool AmpleSet::genTestIProbe() {
 
 // XXX: move out of here
 vector<vector<shared_ptr<Transition> > > AmpleSet::create() {
-    vector<int> collectives = {BARRIER, BCAST, SCATTER, GATHER, SCATTERV,
-            GATHERV, ALLGATHER, ALLGATHERV, ALLTOALL, ALLTOALLV,
-            SCAN, EXSCAN, REDUCE, REDUCE_SCATTER, ALLREDUCE, FINALIZE,
-            CART_CREATE, COMM_CREATE, COMM_DUP, COMM_SPLIT, COMM_FREE};
+    vector<OpType> collectives = {OpType::BARRIER, OpType::BCAST, OpType::SCATTER,
+        OpType::GATHER, OpType::SCATTERV, OpType::GATHERV, OpType::ALLGATHER,
+        OpType::ALLGATHERV, OpType::ALLTOALL, OpType::ALLTOALLV, OpType::SCAN,
+        OpType::EXSCAN, OpType::REDUCE, OpType::REDUCE_SCATTER,
+        OpType::ALLREDUCE, OpType::FINALIZE, OpType::CART_CREATE,
+        OpType::COMM_CREATE, OpType::COMM_DUP, OpType::COMM_SPLIT,
+        OpType::COMM_FREE};
 
     for (auto collective : collectives) {
-        if (genCollectiveAmple(BARRIER)) {
+        if (genCollectiveAmple(collective)) {
             return ample_set;
         }
     }

@@ -21,9 +21,8 @@
 #include "name2id.hpp"
 
 
-std::map<std::string, int> name2id::name_id;
+std::map<std::string, OpType> name2id::name_id;
 bool name2id::init_done = false;
-
 
 void name2id::doInit () {
 
@@ -31,153 +30,154 @@ void name2id::doInit () {
         return;
     }
 
-    name_id["Assert"] = ASSERT;
+    name_id["Assert"] = OpType::ASSERT;
 
-    name_id["MPI_Send"] = SEND;
-    name_id["Send"] = SEND;
+    name_id["MPI_Send"] = OpType::SEND;
+    name_id["Send"] = OpType::SEND;
 
-    name_id["MPI_Isend"] = ISEND;
-    name_id["Isend"] = ISEND;
+    name_id["MPI_Isend"] = OpType::ISEND;
+    name_id["Isend"] = OpType::ISEND;
 
-    name_id["MPI_Ssend"] = SSEND;
-    name_id["Ssend"] = SSEND;
+    name_id["MPI_Ssend"] = OpType::SSEND;
+    name_id["Ssend"] = OpType::SSEND;
 
-	name_id["MPI_Rsend"] = RSEND;
-	name_id["Rsend"] = RSEND;
+	name_id["MPI_Rsend"] = OpType::RSEND;
+	name_id["Rsend"] = OpType::RSEND;
 
-    name_id["MPI_Send_init"] = SEND_INIT;
-    name_id["Send_init"] = SEND_INIT;
-    
-    name_id["MPI_Recv"] = RECV;
-    name_id["Recv"] = RECV;
+    name_id["MPI_Send_init"] = OpType::SEND_INIT;
+    name_id["Send_init"] = OpType::SEND_INIT;
 
-    name_id["MPI_Irecv"] = IRECV;
-    name_id["Irecv"] = IRECV;
+    name_id["MPI_Recv"] = OpType::RECV;
+    name_id["Recv"] = OpType::RECV;
 
-    name_id["MPI_Recv_init"] = RECV_INIT;
-    name_id["Recv_init"] = RECV_INIT;
+    name_id["MPI_Irecv"] = OpType::IRECV;
+    name_id["Irecv"] = OpType::IRECV;
 
-    name_id["MPI_Probe"] = PROBE;
-    name_id["Probe"] = PROBE;
+    name_id["MPI_Recv_init"] = OpType::RECV_INIT;
+    name_id["Recv_init"] = OpType::RECV_INIT;
 
-    name_id["MPI_Iprobe"] = IPROBE;
-    name_id["Iprobe"] = IPROBE;
+    name_id["MPI_Probe"] = OpType::PROBE;
+    name_id["Probe"] = OpType::PROBE;
 
-    name_id["MPI_Start"] = START;
-    name_id["Start"] = START;
+    name_id["MPI_Iprobe"] = OpType::IPROBE;
+    name_id["Iprobe"] = OpType::IPROBE;
 
-    name_id["MPI_Startall"] = STARTALL;
-    name_id["Startall"] = STARTALL;
+    name_id["MPI_Start"] = OpType::START;
+    name_id["Start"] = OpType::START;
 
-    name_id["MPI_Request_free"] = REQUEST_FREE;
-    name_id["Request_free"] = REQUEST_FREE;
+    name_id["MPI_Startall"] = OpType::STARTALL;
+    name_id["Startall"] = OpType::STARTALL;
 
-    name_id["MPI_Wait"] = WAIT;
-    name_id["Wait"] = WAIT;
+    name_id["MPI_Request_free"] = OpType::REQUEST_FREE;
+    name_id["Request_free"] = OpType::REQUEST_FREE;
 
-    name_id["MPI_Waitall"] = WAITALL;
-    name_id["Waitall"] = WAITALL;
+    name_id["MPI_Wait"] = OpType::WAIT;
+    name_id["Wait"] = OpType::WAIT;
 
-    name_id["MPI_Waitany"] = WAITANY;
-    name_id["Waitany"] = WAITANY;
+    name_id["MPI_Waitall"] = OpType::WAITALL;
+    name_id["Waitall"] = OpType::WAITALL;
 
-    name_id["MPI_Testany"] = TESTANY;
-    name_id["Testany"] = TESTANY;
+    name_id["MPI_Waitany"] = OpType::WAITANY;
+    name_id["Waitany"] = OpType::WAITANY;
 
-    name_id["MPI_Testall"] = TESTALL;
-    name_id["Testall"] = TESTALL;
+    name_id["MPI_Testany"] = OpType::TESTANY;
+    name_id["Testany"] = OpType::TESTANY;
 
-    name_id["MPI_Test"] = TEST;
-    name_id["Test"] = TEST;
+    name_id["MPI_Testall"] = OpType::TESTALL;
+    name_id["Testall"] = OpType::TESTALL;
 
-    name_id["MPI_Sendrecv"] = SENDRECV;
-    name_id["Sendrecv"] = SENDRECV;
+    name_id["MPI_Test"] = OpType::TEST;
+    name_id["Test"] = OpType::TEST;
 
-    name_id["MPI_Barrier"] = BARRIER;
-    name_id["Barrier"] = BARRIER;
+    name_id["MPI_Sendrecv"] = OpType::SENDRECV;
+    name_id["Sendrecv"] = OpType::SENDRECV;
 
-    name_id["MPI_Bcast"] = BCAST;
-    name_id["Bcast"] = BCAST;
+    name_id["MPI_Barrier"] = OpType::BARRIER;
+    name_id["Barrier"] = OpType::BARRIER;
 
-    name_id["MPI_Scatter"] = SCATTER;
-    name_id["Scatter"] = SCATTER;
+    name_id["MPI_Bcast"] = OpType::BCAST;
+    name_id["Bcast"] = OpType::BCAST;
 
-    name_id["MPI_Gather"] = GATHER;
-    name_id["Gather"] = GATHER;
+    name_id["MPI_Scatter"] = OpType::SCATTER;
+    name_id["Scatter"] = OpType::SCATTER;
 
-    name_id["MPI_Scatterv"] = SCATTERV;
-    name_id["Scatterv"] = SCATTERV;
+    name_id["MPI_Gather"] = OpType::GATHER;
+    name_id["Gather"] = OpType::GATHER;
 
-    name_id["MPI_Gatherv"] = GATHERV;
-    name_id["Gatherv"] = GATHERV;
+    name_id["MPI_Scatterv"] = OpType::SCATTERV;
+    name_id["Scatterv"] = OpType::SCATTERV;
 
-    name_id["MPI_Allgather"] = ALLGATHER;
-    name_id["Allgather"] = ALLGATHER;
+    name_id["MPI_Gatherv"] = OpType::GATHERV;
+    name_id["Gatherv"] = OpType::GATHERV;
 
-    name_id["MPI_AllGatherv"] = ALLGATHERV;
-    name_id["Allgatherv"] = ALLGATHERV;
+    name_id["MPI_Allgather"] = OpType::ALLGATHER;
+    name_id["Allgather"] = OpType::ALLGATHER;
 
-    name_id["MPI_Alltoall"] = ALLTOALL;
-    name_id["Alltoall"] = ALLTOALL;
+    name_id["MPI_AllGatherv"] = OpType::ALLGATHERV;
+    name_id["Allgatherv"] = OpType::ALLGATHERV;
 
-    name_id["MPI_Alltoallv"] = ALLTOALLV;
-    name_id["Alltoallv"] = ALLTOALLV;
+    name_id["MPI_Alltoall"] = OpType::ALLTOALL;
+    name_id["Alltoall"] = OpType::ALLTOALL;
 
-    name_id["MPI_Scan"] = SCAN;
-    name_id["Scan"] = SCAN;
+    name_id["MPI_Alltoallv"] = OpType::ALLTOALLV;
+    name_id["Alltoallv"] = OpType::ALLTOALLV;
 
-    name_id["MPI_Reduce"] = REDUCE;
-    name_id["Reduce"] = REDUCE;
+    name_id["MPI_Scan"] = OpType::SCAN;
+    name_id["Scan"] = OpType::SCAN;
 
-    name_id["MPI_Reduce_scatter"] = REDUCE_SCATTER;
-    name_id["Reduce_scatter"] = REDUCE_SCATTER;
+    name_id["MPI_Reduce"] = OpType::REDUCE;
+    name_id["Reduce"] = OpType::REDUCE;
 
-    name_id["MPI_Allreduce"] = ALLREDUCE;
-    name_id["Allreduce"] = ALLREDUCE;
+    name_id["MPI_Reduce_scatter"] = OpType::REDUCE_SCATTER;
+    name_id["Reduce_scatter"] = OpType::REDUCE_SCATTER;
 
-    name_id["MPI_Comm_create"] = COMM_CREATE;
-    name_id["Comm_create"] = COMM_CREATE;
+    name_id["MPI_Allreduce"] = OpType::ALLREDUCE;
+    name_id["Allreduce"] = OpType::ALLREDUCE;
 
-    name_id["MPI_Cart_create"] = CART_CREATE;
-    name_id["Cart_create"] = CART_CREATE;
+    name_id["MPI_Comm_create"] = OpType::COMM_CREATE;
+    name_id["Comm_create"] = OpType::COMM_CREATE;
 
-    name_id["MPI_Comm_dup"] = COMM_DUP;
-    name_id["Comm_dup"] = COMM_DUP;
+    name_id["MPI_Cart_create"] = OpType::CART_CREATE;
+    name_id["Cart_create"] = OpType::CART_CREATE;
 
-    name_id["MPI_Comm_split"] = COMM_SPLIT;
-    name_id["Comm_split"] = COMM_SPLIT;
+    name_id["MPI_Comm_dup"] = OpType::COMM_DUP;
+    name_id["Comm_dup"] = OpType::COMM_DUP;
 
-    name_id["MPI_Comm_free"] = COMM_FREE;
-    name_id["Comm_free"] = COMM_FREE;
+    name_id["MPI_Comm_split"] = OpType::COMM_SPLIT;
+    name_id["Comm_split"] = OpType::COMM_SPLIT;
 
-    name_id["MPI_Abort"] = ABORT;
-    name_id["Abort"] = ABORT;
+    name_id["MPI_Comm_free"] = OpType::COMM_FREE;
+    name_id["Comm_free"] = OpType::COMM_FREE;
 
-    name_id["MPI_Finalize"] = FINALIZE;
-    name_id["Finalize"] = FINALIZE;
+    name_id["MPI_Abort"] = OpType::ABORT;
+    name_id["Abort"] = OpType::ABORT;
 
-    name_id["Leak"] = LEAK;
+    name_id["MPI_Finalize"] = OpType::FINALIZE;
+    name_id["Finalize"] = OpType::FINALIZE;
+
+    name_id["Leak"] = OpType::LEAK;
 
 /* == fprs begin == */
-    name_id["MPI_Pcontrol"] = PCONTROL;
-    name_id["Pcontrol"] = PCONTROL;
-	name_id["MPI_Exscan"] = EXSCAN;
-	name_id["Exscan"] = EXSCAN;
+    name_id["MPI_Pcontrol"] = OpType::PCONTROL;
+    name_id["Pcontrol"] = OpType::PCONTROL;
+	name_id["MPI_Exscan"] = OpType::EXSCAN;
+	name_id["Exscan"] = OpType::EXSCAN;
 /* == fprs end == */
 
     init_done = true;
 
 }
 
-int name2id::getId (std::string name) {
-
+optional<OpType> name2id::getId (std::string name) {
+    optional<OpType> result;
     if (! init_done) {
         doInit ();
     }
 
-    std::map <std::string, int>::iterator iter;
-    if ((iter = name_id.find (name)) == name_id.end ()) {
-        return -1;
+    auto iter = name_id.find (name);
+    if (iter == name_id.end ()) {
+        return result;
     }
-    return (*iter).second;
+    result.reset((*iter).second);
+    return result;
 }

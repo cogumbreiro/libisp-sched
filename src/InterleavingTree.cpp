@@ -76,11 +76,11 @@ int ITree::CHECK (/*ServerSocket &sock, */std::list <int> &l) {
         if(cbl.size() == 2) {
             auto last_ptr = cbl.back();
             auto env = last_ptr->getEnvelope();
-            if ((env.func_id == RECV || env.func_id == IRECV) && env.src == WILDCARD) {
+            if ((env.func_id == OpType::RECV || env.func_id == OpType::IRECV) && env.src == WILDCARD) {
                 have_wildcard = true;
                 n->type = WILDCARD_RECV_NODE;
                 n->wildcard = last_ptr;
-            } else if (env.func_id == PROBE && env.src == WILDCARD) {
+            } else if (env.func_id == OpType::PROBE && env.src == WILDCARD) {
                 have_wildcard = true;
                 n->type = WILDCARD_PROBE_NODE;
                 n->wildcard = last_ptr;
@@ -103,8 +103,8 @@ int ITree::CHECK (/*ServerSocket &sock, */std::list <int> &l) {
     if (front_env.isSendType()) {
         /* if it's a probe call, we don't issue the send, so no
            need to update the matching of the send */
-        if (back_env.func_id != PROBE &&
-            back_env.func_id != IPROBE) {
+        if (back_env.func_id != OpType::PROBE &&
+            back_env.func_id != OpType::IPROBE) {
             front_ptr->setCurrentMatching(back_ptr);
         } else {
             probe_flag = true;
@@ -126,8 +126,8 @@ int ITree::CHECK (/*ServerSocket &sock, */std::list <int> &l) {
     bool test_iprobe_calls_only = true;
     for (auto curr : cbl) {
         auto & env = curr->getEnvelope();
-        if (env.func_id != IPROBE && env.func_id != TEST &&
-            env.func_id != TESTALL && env.func_id != TESTANY) {
+        if (env.func_id != OpType::IPROBE && env.func_id != OpType::TEST &&
+            env.func_id != OpType::TESTALL && env.func_id != OpType::TESTANY) {
             test_iprobe_calls_only = false;
             break;
         }
@@ -198,7 +198,7 @@ void ITree::AddInterCB () {
         }
         if (mset.size() == 2) {
             Envelope *e = (*iter)->GetTransition (mset.back())->GetEnvelope ();
-            if ((e->func_id == IRECV || e->func_id == RECV) &&
+            if ((e->func_id == OpType::IRECV || e->func_id == OpType::RECV) &&
                                                     e->src == WILDCARD) {
                 GetCurrNode()->GetTransition(mset.back())->AddInterCB(mset.front());
                 continue;

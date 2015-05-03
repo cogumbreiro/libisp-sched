@@ -32,58 +32,71 @@ bool Envelope::operator== (const Envelope &e) const {
         return false;
     }
     switch (e.func_id) {
-    case ASSERT:
+    case OpType::ASSERT:
         return (display_name == e.display_name);
 
-    case BARRIER:
-    case BCAST:
-    case SCATTER:
-    case GATHER:
-    case SCATTERV:
-    case GATHERV:
-    case ALLGATHER:
-    case ALLGATHERV:
-    case ALLTOALL:
-    case ALLTOALLV:
-    case SCAN:
-	case EXSCAN:
-    case ALLREDUCE:
-    case REDUCE:
-    case REDUCE_SCATTER:
-    case CART_CREATE:
-    case COMM_CREATE:
-    case COMM_DUP:
-    case COMM_SPLIT:
-    case COMM_FREE:
-    case WAIT:
-    case TEST:
-    case WAITANY:
-    case TESTANY:
-    case WAITALL:
-    case TESTALL:
+    case OpType::BARRIER:
+    case OpType::BCAST:
+    case OpType::SCATTER:
+    case OpType::GATHER:
+    case OpType::SCATTERV:
+    case OpType::GATHERV:
+    case OpType::ALLGATHER:
+    case OpType::ALLGATHERV:
+    case OpType::ALLTOALL:
+    case OpType::ALLTOALLV:
+    case OpType::SCAN:
+	case OpType::EXSCAN:
+    case OpType::ALLREDUCE:
+    case OpType::REDUCE:
+    case OpType::REDUCE_SCATTER:
+    case OpType::CART_CREATE:
+    case OpType::COMM_CREATE:
+    case OpType::COMM_DUP:
+    case OpType::COMM_SPLIT:
+    case OpType::COMM_FREE:
+    case OpType::WAIT:
+    case OpType::TEST:
+    case OpType::WAITANY:
+    case OpType::TESTANY:
+    case OpType::WAITALL:
+    case OpType::TESTALL:
         return (count == e.count);
 
-    case SEND:
-    case SSEND:
-    case ISEND:
-	case RSEND:
+    case OpType::SEND:
+    case OpType::SSEND:
+    case OpType::ISEND:
+	case OpType::RSEND:
+    case OpType::SEND_INIT:
         return (dest==e.dest && e.stag == stag);
 
-    case IRECV:
-    case RECV:
-    case PROBE:
-    case IPROBE:
+    case OpType::IRECV:
+    case OpType::RECV:
+    case OpType::PROBE:
+    case OpType::IPROBE:
+    case OpType::RECV_INIT:
         return (e.src == src && e.rtag == rtag);
 
-    case ABORT:
-    case FINALIZE:
-        return true;
-
-    case LEAK:
+    case OpType::LEAK:
         return (e.filename == filename && e.linenumber == linenumber &&
                 e.count == count);
-    case PCONTROL:
+
+    case OpType::PCONTROL:
         return (e.stag == stag);
+
+    case OpType::STARTALL:
+        return (e.count == count);
+
+    case OpType::SENDRECV:
+        return (e.src == src && dest == e.dest
+                && stag == e.stag && rtag == e.rtag);
+
+    case OpType::START:
+    case OpType::ABORT:
+    case OpType::FINALIZE:
+    case OpType::REQUEST_FREE:
+        return true;
+
     }
     return false;
 }

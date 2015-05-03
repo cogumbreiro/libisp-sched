@@ -26,18 +26,18 @@ bool EnabledTransitions::allAncestorsMatched(const Transition & func) const {
         auto curr_func = curr_env.func_id;
         if (!curr.isMatched()) {
             // Wei-Fan Chiang: I don't know why I need to add this line. But, I need it........
-            if (curr_func == PCONTROL) {
+            if (curr_func == OpType::PCONTROL) {
                 continue;
             }
             if (is_wait_or_test_type && /* !Scheduler::_send_block*/
-                    curr_func == ISEND) {
+                    curr_func == OpType::ISEND) {
                 continue;
             }
             return false;
-        } else if (curr_func == WAIT ||
-                   curr_func == TEST ||
-                   curr_func == WAITALL ||
-                   curr_func == TESTALL) {
+        } else if (curr_func == OpType::WAIT ||
+                   curr_func == OpType::TEST ||
+                   curr_func == OpType::WAITALL ||
+                   curr_func == OpType::TESTALL) {
             for (auto & anc : indirect(curr.getAncestors())) {
                 if (!anc.isMatched() && curr_env.matchSend(anc.getEnvelope())) {
                     return false;
@@ -59,7 +59,7 @@ bool EnabledTransitions::anyAncestorMatched (const Trace & trace, const Transiti
     for (auto req : trace.getRequestedProcs(func)) {
         if (req->isMatched() ||
                 (is_wait_or_test_type && /*!Scheduler::_send_block &&*/
-                    req->getEnvelope().func_id == ISEND)) {
+                    req->getEnvelope().func_id == OpType::ISEND)) {
             any_match = true;
         }
         filtered.erase(std::remove(filtered.begin(), filtered.end(), req), filtered.end());
@@ -90,10 +90,10 @@ vector<shared_ptr<Transition> > EnabledTransitions::create() const {
             auto & func = *func_ptr;
             if (!func.isMatched()) {
                 const auto func_name = func.getEnvelope().func_id;
-                if ((func_name != WAITANY && func_name != TESTANY) &&
+                if ((func_name != OpType::WAITANY && func_name != OpType::TESTANY) &&
                         allAncestorsMatched(func)) {
                     result.push_back(func_ptr);
-                } else if ((func_name == WAITANY || func_name == TESTANY) &&
+                } else if ((func_name == OpType::WAITANY || func_name == OpType::TESTANY) &&
                         anyAncestorMatched(trace, func)) {
                     result.push_back(func_ptr);
                 }

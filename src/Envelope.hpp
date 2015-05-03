@@ -40,7 +40,7 @@ public:
     int                 issue_id;
     string         func;
     string         display_name;
-    int                 func_id;
+    OpType                 func_id;
     int                 count;
     int                 index;
     int                 dest;
@@ -76,40 +76,57 @@ public:
     }
 
     inline bool isSendType () const {
-        return (func_id == SSEND || func_id == SEND ||
-				func_id == RSEND || func_id == ISEND);
+        return (func_id == OpType::SSEND || func_id == OpType::SEND ||
+				func_id == OpType::RSEND || func_id == OpType::ISEND);
     }
 
     inline bool isRecvType () const {
-        return (func_id == IRECV || func_id == RECV ||
-                func_id == PROBE || func_id == IPROBE);
+        return (func_id == OpType::IRECV || func_id == OpType::RECV ||
+                func_id == OpType::PROBE || func_id == OpType::IPROBE);
     }
 
     inline bool isCollectiveType () const {
-        return (func_id == BARRIER || func_id == BCAST || func_id == CART_CREATE
-                || func_id == COMM_CREATE || func_id == COMM_DUP
-                || func_id == COMM_SPLIT || func_id == COMM_FREE
-                || func_id == ALLREDUCE || func_id == REDUCE
-                || func_id == GATHER || func_id == SCATTER
-                || func_id == GATHERV || func_id == SCATTERV
-                || func_id == ALLGATHER || func_id == ALLGATHERV
-                || func_id == ALLTOALL || func_id == ALLTOALLV
-                || func_id == SCAN || func_id == REDUCE_SCATTER);
+        return (func_id == OpType::BARRIER || func_id == OpType::BCAST
+                || func_id == OpType::CART_CREATE
+                || func_id == OpType::COMM_CREATE || func_id == OpType::COMM_DUP
+                || func_id == OpType::COMM_SPLIT || func_id == OpType::COMM_FREE
+                || func_id == OpType::ALLREDUCE || func_id == OpType::REDUCE
+                || func_id == OpType::GATHER || func_id == OpType::SCATTER
+                || func_id == OpType::GATHERV || func_id == OpType::SCATTERV
+                || func_id == OpType::ALLGATHER || func_id == OpType::ALLGATHERV
+                || func_id == OpType::ALLTOALL || func_id == OpType::ALLTOALLV
+                || func_id == OpType::SCAN || func_id == OpType::REDUCE_SCATTER);
     }
 
-    inline bool isBlockingType () const {
-        return (func_id == RECV || func_id == SSEND
-                || func_id == WAIT || func_id == PROBE || func_id == IPROBE
-                || func_id == FINALIZE || func_id == TEST
-                || func_id == WAITANY || func_id == TESTANY
-                || func_id == WAITALL || func_id == TESTALL || isCollectiveType());
+    inline bool isBlockingType() const {
+        return (func_id == OpType::RECV || func_id == OpType::SSEND
+                || isProbeType()
+                || func_id == OpType::FINALIZE
+                || isTestType()
+                || isWaitType()
+                || isCollectiveType());
+    }
+
+    inline bool isProbeType() const {
+        return func_id == OpType::PROBE || func_id == OpType::IPROBE;
+    }
+
+    inline bool isWaitType() const {
+        return (func_id == OpType::WAIT
+                || func_id == OpType::WAITANY
+                || func_id == OpType::WAITALL
+                );
+    }
+
+    inline bool isTestType() const {
+        return (func_id == OpType::TEST
+                || func_id == OpType::TESTANY
+                || func_id == OpType::TESTALL
+                );
     }
 
     inline bool isWaitOrTestType () const {
-        return (func_id == WAIT || func_id == TEST
-                || func_id == WAITANY || func_id == TESTANY
-                || func_id == WAITALL || func_id == TESTALL
-                );
+        return isWaitType() || isTestType();
     }
 
     inline bool matchRecv(const Envelope & other) const {

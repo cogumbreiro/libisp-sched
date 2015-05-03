@@ -41,7 +41,7 @@ private:
 
     const vector<shared_ptr<Transition>> & funcs;
 
-    bool genCollectiveAmple(int collective);
+    bool genCollectiveAmple(OpType collective);
 
     bool genWaitOrTestAmple();
 

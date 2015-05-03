@@ -62,26 +62,26 @@ bool Trace::intraCB (const Transition &f, const Transition &s) const {
     /*
      * 4) iRecv -> Wait order rule
      */
-    if (env_f.func_id == IRECV &&
-            ((env_s.func_id == WAIT) ||
-             (env_s.func_id == TEST)) &&
+    if (env_f.func_id == OpType::IRECV &&
+            ((env_s.func_id == OpType::WAIT) ||
+             (env_s.func_id == OpType::TEST)) &&
             env_f.count == env_s.count) {
         return true;
     }
 
-    if (env_f.func_id == ISEND &&
-            ((env_s.func_id == WAIT) ||
-             (env_s.func_id == TEST)) &&
+    if (env_f.func_id == OpType::ISEND &&
+            ((env_s.func_id == OpType::WAIT) ||
+             (env_s.func_id == OpType::TEST)) &&
             env_f.count == env_s.count) {
         return true;
     }
 
-    if (((env_s.func_id == WAITALL) ||
-            (env_s.func_id == WAITANY) ||
-            (env_s.func_id == TESTANY) ||
-            (env_s.func_id == TESTALL) ) &&
-            (env_f.func_id == IRECV ||
-             env_f.func_id == ISEND)) {
+    if (((env_s.func_id == OpType::WAITALL) ||
+            (env_s.func_id == OpType::WAITANY) ||
+            (env_s.func_id == OpType::TESTANY) ||
+            (env_s.func_id == OpType::TESTALL) ) &&
+            (env_f.func_id == OpType::IRECV ||
+             env_f.func_id == OpType::ISEND)) {
 
         for (int i = 0 ; i < env_s.count ; i++) {
             if (env_s.req_procs[i] == env_f.index) {
@@ -90,7 +90,7 @@ bool Trace::intraCB (const Transition &f, const Transition &s) const {
         }
     }
 
-    if (env_s.func_id == FINALIZE) {
+    if (env_s.func_id == OpType::FINALIZE) {
         return true;
     }
 
@@ -111,10 +111,10 @@ bool Trace::add(std::unique_ptr<Envelope> env) {
 
     bool blocking_flag = false;
 
-    if (env_t.func_id == ISEND || env_t.func_id == IRECV) {
+    if (env_t.func_id == OpType::ISEND || env_t.func_id == OpType::IRECV) {
         ulist.push_back(last_op->index);
-    } else if (env_t.func_id == WAIT || env_t.func_id == WAITALL ||
-               env_t.func_id == TEST || env_t.func_id == TESTALL) {
+    } else if (env_t.func_id == OpType::WAIT || env_t.func_id == OpType::WAITALL ||
+               env_t.func_id == OpType::TEST || env_t.func_id == OpType::TESTALL) {
         for (auto & req : env_t.req_procs) {
             auto curr = tlist[req];
             if (curr->addIntraCB(last_op)) {
@@ -128,7 +128,7 @@ bool Trace::add(std::unique_ptr<Envelope> env) {
     for (auto & curr : indirect(reverse())) {
         if (intraCB(curr, *last_op)) {
             if (blocking_flag) {
-                if (env_t.func_id != SEND &&
+                if (env_t.func_id != OpType::SEND &&
                         (ulist.size() == 0 || index < ulist.front())) {
                     return true;
                 }
@@ -136,7 +136,7 @@ bool Trace::add(std::unique_ptr<Envelope> env) {
                 //the only calls that can slip through it are
                 //Isend and Irecv
                 auto env_f = curr.getEnvelope();
-                if (env_f.func_id == IRECV) {
+                if (env_f.func_id == OpType::IRECV) {
                     if (curr.addIntraCB(last_op)) {
                         last_op->addAncestor(tlist[i]);
                     }
@@ -145,7 +145,7 @@ bool Trace::add(std::unique_ptr<Envelope> env) {
                     if (env_t.matchRecv(env_f)) {
                         return true;
                     }
-                } else if (env_f.func_id == ISEND) {
+                } else if (env_f.func_id == OpType::ISEND) {
                     if (curr.addIntraCB(last_op)) {
                         last_op->addAncestor(tlist[i]);
                     }

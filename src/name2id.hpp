@@ -23,8 +23,11 @@
 
 #include <map>
 #include <string>
+#include <boost/optional.hpp>
 
-enum {
+using boost::optional;
+
+enum class OpType {
     ASSERT,
     SEND,
 	RSEND,
@@ -78,18 +81,15 @@ class name2id {
 
 public:
     /*
-     * Returns a unique integer given a name.
      * The names are MPI function names.
      * Names cam be of the form "MPI_Send" or "Send"
-     * Returns -1 if the name if invalid.
      */
-
-    static int getId (std::string name);
+    static optional<OpType> getId (std::string name);
 
 private:
     static void doInit ();
 
-    static std::map <std::string, int> name_id;
+    static std::map <std::string, OpType> name_id;
     static bool init_done;
 
     /*
