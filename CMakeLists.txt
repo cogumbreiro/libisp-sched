@@ -34,14 +34,15 @@ add_library(isp-sched
         src/EnabledTransitions.cpp src/EnabledTransitions.hpp
         src/AmpleSet.cpp src/AmpleSet.hpp
         src/Node.cpp src/Node.hpp
-        src/InterleavingTree.cpp src/InterleavingTree.hpp
+        #src/Call.hpp src/Call.cpp
+        #src/InterleavingTree.cpp src/InterleavingTree.hpp
         )
 
 target_include_directories(isp-sched PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
-add_executable(test-cb src/TestCB.cpp)
-add_test(test-cb test-cb)
+#add_executable(test-cb src/TestCB.cpp)
+#add_test(test-cb test-cb)
 #target_link_libraries(test-cb ${CPM_LIBRARIES})
 
-add_executable(test-tr src/TestTransition.cpp)
+add_executable(test-tr src/Call.cpp)
 add_test(test-tr test-tr)
