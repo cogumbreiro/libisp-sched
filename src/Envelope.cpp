@@ -19,6 +19,34 @@ Envelope::Envelope() {
     src_wildcard = false;
 }
 
+Envelope::Envelope(Envelope const &o) {
+    id = o.id;
+    order_id = o.order_id;
+    issue_id = o.issue_id;
+    func = o.func;
+    display_name = o.display_name;
+    func_id = o.func_id;
+    count = o.count;
+    index = o.index;
+    dest = o.dest;
+    dest_wildcard = o.dest_wildcard;
+    src = o.src;
+    src_wildcard = o.src_wildcard;
+    stag = o.stag;
+    comm = o.comm;
+    data_type = o.data_type;
+    comm_list = o.comm_list;
+    req_procs = o.req_procs;
+    rtag = o.rtag;
+    nprocs = o.nprocs;
+    comm_split_color = o.comm_split_color;
+    comm_id = o.comm_id;
+    filename = o.filename;
+    linenumber = o.linenumber;
+    ref = o.ref;
+    in_exall = o.in_exall;
+}
+
 bool Envelope::operator== (const Envelope &e) const {
     if (e.func != func) {
         return false;
