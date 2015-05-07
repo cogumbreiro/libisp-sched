@@ -22,6 +22,7 @@ using boost::adaptors::reverse;
 using boost::adaptors::indirect;
 using std::make_shared;
 using std::move;
+using std::unique_ptr;
 
 bool Trace::add(std::unique_ptr<Envelope> env) {
     const int index = env->index;
