@@ -16,6 +16,10 @@ struct Call {
     Envelope envelope;
 
     Call(int p, int i, Envelope e) : pid(p), index(i), envelope(e) {}
+    Call(const Call & c) : pid(c.pid), index(c.index), envelope(c.envelope) {}
+    Call() : pid(0), index(0) {}
+
+    bool completesBefore(Call const&) const;
 
     friend bool operator< (const Call &a, const Call &b) {
         return a.pid < b.pid || (a.pid == b.pid && a.index < b.index);
