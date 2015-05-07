@@ -99,6 +99,42 @@ struct Envelope {
      * Defines the Intra-CB relation
      */
      bool completesBefore(Envelope const &) const;
+
+     static Envelope ISend(int dest) {
+         Envelope e;
+         e.dest = dest;
+         e.func_id = OpType::ISEND;
+         return e;
+     }
+
+     static Envelope Barrier() {
+         Envelope e;
+         e.func_id = OpType::BARRIER;
+         return e;
+     }
+
+     static Envelope IRecv(int src) {
+         return IRecv(src, WILDCARD);
+     }
+
+     static Envelope IRecv(int src, int rtag) {
+         Envelope e;
+         e.src = src < 0 ? WILDCARD : src;
+         e.src_wildcard = src < 0;
+         e.func_id = OpType::IRECV;
+         e.rtag = rtag < 0 ? WILDCARD : rtag;
+         // XXX: e.count
+         // XXX: e.comm
+         return e;
+     }
+
+     static Envelope Wait(int req) {
+         Envelope e;
+         e.func_id = OpType::WAIT;
+         e.req_procs.insert(req);
+         // XXX: e.count
+         return e;
+     }
 };
 
 #endif
