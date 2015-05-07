@@ -30,8 +30,7 @@ using std::string;
 
 #define WILDCARD (-1)
 
-class Envelope {
-public:
+struct Envelope {
     /*
      * The envelope contains all the possible parameters for a
      * function. Only those valid for a particular function must
@@ -64,99 +63,42 @@ public:
     unsigned int        ref;
     bool in_exall;
 
+    Envelope();
+
+    Envelope(const Envelope &o);
+
     bool operator==(const Envelope &) const;
 
     bool operator!=(const Envelope &) const;
 
-    Envelope();
+    void issue();
 
-    Envelope(const Envelope &e);
+    bool isSendType () const;
 
-    inline void issue() {
-        static int issue_number = 0;
-        issue_id = ++issue_number;
-    }
+    bool isRecvType () const;
 
-    inline bool isSendType () const {
-        return (func_id == OpType::SSEND || func_id == OpType::SEND ||
-				func_id == OpType::RSEND || func_id == OpType::ISEND);
-    }
+    bool isCollectiveType () const;
 
-    inline bool isRecvType () const {
-        return (func_id == OpType::IRECV || func_id == OpType::RECV ||
-                func_id == OpType::PROBE || func_id == OpType::IPROBE);
-    }
+    bool isBlockingType() const;
 
-    inline bool isCollectiveType () const {
-        return (func_id == OpType::BARRIER || func_id == OpType::BCAST
-                || func_id == OpType::CART_CREATE
-                || func_id == OpType::COMM_CREATE || func_id == OpType::COMM_DUP
-                || func_id == OpType::COMM_SPLIT || func_id == OpType::COMM_FREE
-                || func_id == OpType::ALLREDUCE || func_id == OpType::REDUCE
-                || func_id == OpType::GATHER || func_id == OpType::SCATTER
-                || func_id == OpType::GATHERV || func_id == OpType::SCATTERV
-                || func_id == OpType::ALLGATHER || func_id == OpType::ALLGATHERV
-                || func_id == OpType::ALLTOALL || func_id == OpType::ALLTOALLV
-                || func_id == OpType::SCAN || func_id == OpType::REDUCE_SCATTER);
-    }
+    bool isProbeType() const;
 
-    inline bool isBlockingType() const {
-        return (func_id == OpType::RECV || func_id == OpType::SSEND
-                || isProbeType()
-                || func_id == OpType::FINALIZE
-                || isTestType()
-                || isWaitType()
-                || isCollectiveType());
-    }
+    bool isWaitType() const;
 
-    inline bool isProbeType() const {
-        return func_id == OpType::PROBE || func_id == OpType::IPROBE;
-    }
+    bool isTestType() const;
 
-    inline bool isWaitType() const {
-        return (func_id == OpType::WAIT
-                || func_id == OpType::WAITANY
-                || func_id == OpType::WAITALL
-                );
-    }
+    bool matchRecv(const Envelope & other) const;
 
-    inline bool isTestType() const {
-        return (func_id == OpType::TEST
-                || func_id == OpType::TESTANY
-                || func_id == OpType::TESTALL
-                );
-    }
+    bool matchSend(const Envelope & other) const;
 
-    inline bool matchRecv(const Envelope & other) const {
-        return isRecvType() &&
-            other.isRecvType() &&
-            src == other.src &&
-            comm == other.comm &&
-            rtag == other.rtag;
-    }
+    bool canSend(const Envelope & recv) const;
 
-    inline bool matchSend(const Envelope & other) const {
-        return isSendType() && other.isSendType() &&
-            dest == other.dest &&
-            comm == other.comm &&
-            stag == other.stag;
-    }
-
-    inline bool canSend(const Envelope & recv) const {
-        return isSendType() && recv.isRecvType() &&
-            comm == recv.comm &&
-            dest == recv.src &&
-            (stag == recv.rtag || recv.rtag == WILDCARD);
-    }
-
-    bool requested(int index) const {
-        return req_procs.find(index) != req_procs.end();
-    }
+    bool requested(int index) const;
 
     /**
      * Defines the Intra-CB relation
      */
-     bool completesBefore(const Envelope &rhs) const;
+     bool completesBefore(Envelope const &) const;
 };
 
 #endif
