@@ -41,6 +41,36 @@ set<Call> filter_enabled(const set<Call> & calls) {
     return result;
 }
 
+enum class Match {
+    Collective,
+    ReceiveAny,
+    Receive,
+    Send,
+    Wait,
+    Unknown
+};
+
+Match get_match(const Envelope &env) {
+    if (env.isCollectiveType()) {
+        return Match::Collective;
+    } else if (env.isRecvType()) {
+        return env.src == WILDCARD ? Match::ReceiveAny : Match::Receive;
+    } else if (env.isSendType()) {
+        return Match::Send;
+    } else if (env.isWaitType()) {
+        return Match::Wait;
+    }
+    return Match::Unknown;
+}
+
+map<Match, set<Call> > group_by_match(const set<Call> & enabled) {
+    map<Match, set<Call> > result;
+    for (auto call : enabled) {
+        result[get_match(call.envelope)].insert(call);
+    }
+    return result;
+}
+
 
 TEST_CASE("Testing Call::equals", "[call]") {
     REQUIRE(Call(1, 10, Envelope()) == Call(1, 10, Envelope()));
@@ -94,8 +124,8 @@ TEST_CASE("Testing sort_by_procs", "[call]") {
     REQUIRE(proc3.size() == 0);
 }
 
-// DOI: 10.1007/978-3-642-03770-2_33
-TEST_CASE("ISP Tool Update: Scalable MPI Verification", "example-1") {
+// DOI: 10.1007/978-3-642-11261-4_12
+TEST_CASE("ISP Tool Update: Scalable MPI Verification example-1", "example-1") {
     /*
      * P0: Isend(to P1, &h0) ; Barrier; Wait(h0);
      * P1: Irecv(*, &h1)     ; Barrier; Wait(h1);
