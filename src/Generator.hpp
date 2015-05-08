@@ -1,5 +1,5 @@
-#ifndef _MATCH_MAP_HPP
-#define _MATCH_MAP_HPP
+#ifndef _GENERATOR_HPP
+#define _GENERATOR_HPP
 
 #include <vector>
 
@@ -21,8 +21,12 @@ enum class MPIKind {
 /* Given an evelope return the associated match. */
 MPIKind to_kind(const Envelope &env);
 
-struct MatchMap {
-    MatchMap(const set<Call> & enabled) {
+/*
+ * This class generates a set of batches (MatchSet) of instructions
+ * to be run. Each batch should be run in a forked environment.
+ */
+struct Generator {
+    Generator(const set<Call> & enabled) {
         for (auto call : enabled) {
             add(call);
         }

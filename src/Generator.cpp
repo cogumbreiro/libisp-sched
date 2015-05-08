@@ -1,4 +1,4 @@
-#include "MatchMap.hpp"
+#include "Generator.hpp"
 
 /* Given an evelope return the associated match. */
 MPIKind to_kind(const Envelope &env) {
@@ -14,21 +14,21 @@ MPIKind to_kind(const Envelope &env) {
     return MPIKind::Unknown;
 }
 
-void MatchMap::add(Call &call) {
+void Generator::add(Call &call) {
     data[to_kind(call.envelope)].push_back(call);
 }
 
-vector<Call> MatchMap::at(const MPIKind key) const {
+vector<Call> Generator::at(const MPIKind key) const {
     auto result = data.find(key);
     return (result == data.end()) ? vector<Call>() : result->second;
 }
 
-MatchSet MatchMap::matchCollective() const {
+MatchSet Generator::matchCollective() const {
     // assume all are barrier calls ready to be issued
     return at(MPIKind::Collective);
 }
 
-MatchSet MatchMap::matchReceive() const {
+MatchSet Generator::matchReceive() const {
     MatchSet result;
     for (auto recv : at(MPIKind::Receive)) {
         for (auto send : at(MPIKind::Send)) {
@@ -51,11 +51,11 @@ vector<Call> get_sends_for(const Envelope &recv, vector<Call> &sends) {
     return result;
 }
 
-MatchSet MatchMap::matchWait() const {
+MatchSet Generator::matchWait() const {
     return at(MPIKind::Wait);
 }
 
-vector<MatchSet> MatchMap::matchReceiveAny() const {
+vector<MatchSet> Generator::matchReceiveAny() const {
     vector<MatchSet> result;
     for (auto recv : at(MPIKind::ReceiveAny)) {
         auto sends = at(MPIKind::Send);
@@ -71,7 +71,7 @@ vector<MatchSet> MatchMap::matchReceiveAny() const {
     return result;
 }
 
-vector<MatchSet> MatchMap::getMatchSets() const {
+vector<MatchSet> Generator::getMatchSets() const {
     MatchSet ms;
     ms.concat(matchCollective());
     ms.concat(matchReceive());
@@ -80,5 +80,5 @@ vector<MatchSet> MatchMap::getMatchSets() const {
 }
 
 vector<MatchSet> get_match_sets(set<Call> & enabled) {
-    return MatchMap(enabled).getMatchSets();
+    return Generator(enabled).getMatchSets();
 }
