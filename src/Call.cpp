@@ -63,14 +63,102 @@ Match get_match(const Envelope &env) {
     return Match::Unknown;
 }
 
-map<Match, set<Call> > group_by_match(const set<Call> & enabled) {
-    map<Match, set<Call> > result;
+using MatchMap = map<Match, set<Call> >;
+
+MatchMap group_by_match(const set<Call> & enabled) {
+    MatchMap result;
     for (auto call : enabled) {
         result[get_match(call.envelope)].insert(call);
     }
     return result;
 }
 
+using MatchSet = set<Call>;
+
+MatchSet lookup(const MatchMap & matches, const Match key) {
+    auto result = matches.find(key);
+    return (result == matches.end()) ? MatchSet() : result->second;
+}
+
+MatchSet match_collective(const MatchMap & matches) {
+    // assume all are barrier calls ready to be issued
+    return lookup(matches, Match::Collective);
+}
+
+MatchSet match_receive(const MatchMap & matches) {
+    MatchSet result;
+    for (auto recv : lookup(matches, Match::Receive)) {
+        for (auto send : lookup(matches, Match::Send)) {
+            if (send.envelope.canSend(recv.envelope)) {
+                result.insert(send);
+                result.insert(recv);
+            }
+        }
+    }
+}
+
+MatchSet get_sends_for(const Envelope &recv, set<Call> &sends) {
+    MatchSet result;
+    for (auto send : sends) {
+        if (recv.canSend(send.envelope)) {
+            result.insert(send);
+        }
+    }
+    return result;
+}
+
+set<MatchSet> merge_match_sets(set<MatchSet> many, MatchSet one) {
+    set<MatchSet> result;
+    for (auto ms : many) {
+        ms.insert(one.begin(), one.end());
+        result.insert(ms);
+    }
+    if (many.empty()) {
+        result.insert(one);
+    }
+    return result;
+}
+
+set<MatchSet> match_receive_any(const MatchMap & matches) {
+    set<MatchSet> result;
+    for (auto recv : lookup(matches, Match::ReceiveAny)) {
+        auto sends = lookup(matches, Match::Send);
+        for (auto send : get_sends_for(recv.envelope, sends)) {
+            MatchSet ms;
+            recv.envelope.src = send.pid;
+            recv.envelope.src_wildcard = false;
+            ms.insert(recv);
+            ms.insert(send);
+            result.insert(ms);
+        }
+    }
+    return result;
+}
+
+MatchSet match_wait(const MatchMap & matches) {
+    return lookup(matches, Match::Wait);
+}
+
+set<MatchSet> get_match_sets(const MatchMap & matches) {
+    MatchSet ms;
+    auto col = match_collective(matches);
+    ms.insert(col.begin(), col.end());
+    auto recv = match_receive(matches);
+    ms.insert(recv.begin(), recv.end());
+    auto wait = match_wait(matches);
+    ms.insert(wait.begin(), wait.end());
+    auto any = match_receive_any(matches);
+    return merge_match_sets(any, ms);
+}
+
+set<MatchSet> get_match_sets(const set<Call> &calls) {
+    MatchSet result;
+    for (auto proc : sort_by_procs(calls)) {
+        auto enabled = filter_enabled(proc.second);
+        result.insert(enabled.begin(), enabled.end());
+    }
+    return get_match_sets(group_by_match(result));
+}
 
 TEST_CASE("Testing Call::equals", "[call]") {
     REQUIRE(Call(1, 10, Envelope()) == Call(1, 10, Envelope()));
@@ -161,10 +249,24 @@ TEST_CASE("ISP Tool Update: Scalable MPI Verification example-1", "example-1") {
     Call c9(P2, 2, Envelope::Wait(1));
     //trace.insert(c9);
 
+    // All calls must be enabled
     auto procs = sort_by_procs(trace);
-    set<Call> proc0 = procs[P0];
-    proc0 = filter_enabled(proc0);
+
+    set<Call> proc0 = filter_enabled(procs[P0]);
     REQUIRE(2 == proc0.size());
     REQUIRE(proc0.find(c1) != proc0.end());
     REQUIRE(proc0.find(c2) != proc0.end());
+
+    set<Call> proc1 = filter_enabled(procs[P1]);
+    REQUIRE(2 == proc1.size());
+    REQUIRE(proc1.find(c4) != proc1.end());
+    REQUIRE(proc1.find(c5) != proc1.end());
+
+    set<Call> proc2 = filter_enabled(procs[P2]);
+    REQUIRE(1 == proc2.size());
+    REQUIRE(proc2.find(c7) != proc2.end());
+
+    auto ms = get_match_sets(trace);
+    // the program is *deterministic*, so only one trace is allowed
+    REQUIRE(1 == ms.size());
 }
