@@ -40,7 +40,7 @@ SET(SRC
     src/Call.cpp
     src/Checker.cpp
     src/MatchSet.cpp
-    src/MatchMap.cpp
+    src/Generator.cpp
     src/TestCall.cpp
 )
 

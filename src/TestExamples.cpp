@@ -1,7 +1,7 @@
 #define CATCH_CONFIG_MAIN
 #include <catch.hpp>
 
-#include "MatchMap.hpp"
+#include "Generator.hpp"
 
 // DOI: 10.1007/978-3-642-11261-4_12
 TEST_CASE("ISP Tool Update: Scalable MPI Verification example-1") {
