@@ -18,7 +18,8 @@ CPM_Finish()
 # Project details:
 ##
 
-ADD_DEFINITIONS(
+add_definitions (
+    -Wall -pedantic -g
     -std=c++1y # Or -std=c++0x
 )
 
