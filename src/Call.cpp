@@ -95,6 +95,7 @@ MatchSet match_receive(const MatchMap & matches) {
             }
         }
     }
+    return result;
 }
 
 MatchSet get_sends_for(const Envelope &recv, set<Call> &sends) {
@@ -269,4 +270,10 @@ TEST_CASE("ISP Tool Update: Scalable MPI Verification example-1", "example-1") {
     auto ms = get_match_sets(trace);
     // the program is *deterministic*, so only one trace is allowed
     REQUIRE(1 == ms.size());
+    auto tmp = *ms.begin();
+    auto inter = vector<Call>(tmp.begin(), tmp.end());
+    REQUIRE(inter.size() == 3);
+    REQUIRE(inter[0] == c2);
+    REQUIRE(inter[1] == c5);
+    REQUIRE(inter[2] == c7);
 }
