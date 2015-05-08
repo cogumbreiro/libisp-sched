@@ -38,6 +38,9 @@ SET(SRC
     #src/Call.hpp src/Call.cpp
     #src/InterleavingTree.cpp src/InterleavingTree.hpp
     src/Call.cpp
+    src/Checker.cpp
+    src/MatchSet.cpp
+    src/MatchMap.cpp
 )
 
 add_library(isp-sched STATIC ${SRC})
