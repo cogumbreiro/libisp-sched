@@ -1,9 +1,4 @@
-#define CATCH_CONFIG_MAIN
-#include <catch.hpp>
 #include "Call.hpp"
-#include <map>
-using std::multimap;
-using std::pair;
 
 bool Call::completesBefore(const Call & call) const {
     return pid == call.pid && index < call.index

@@ -41,15 +41,18 @@ SET(SRC
     src/Checker.cpp
     src/MatchSet.cpp
     src/MatchMap.cpp
+    src/TestCall.cpp
 )
 
 add_library(isp-sched STATIC ${SRC})
 
-target_include_directories(isp-sched PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+add_executable(test-call src/TestCall.cpp)
+target_link_libraries(test-call isp-sched)
+target_link_libraries(test-call ${CPM_LIBRARIES})
 
-#add_executable(test-cb src/TestCB.cpp)
-#add_test(test-cb test-cb)
-#target_link_libraries(test-cb ${CPM_LIBRARIES})
+add_executable(test-ex src/TestExamples.cpp)
+target_link_libraries(test-ex isp-sched)
+target_link_libraries(test-ex ${CPM_LIBRARIES})
 
-add_executable(test-tr ${SRC})
-add_test(test-tr test-tr)
+add_test(call test-call)
+add_test(examples test-ex)

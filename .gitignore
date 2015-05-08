@@ -11,3 +11,5 @@ test-cb
 test-tr
 libisp-sched.a
 Testing/
+/test-call
+/test-ex

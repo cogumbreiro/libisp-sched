@@ -1,5 +1,6 @@
+#include "Checker.cpp"
 
-TEST_CASE("Testing sort_by_procs", "[call]") {
+TEST_CASE("Testing sort_by_procs") {
     set<Call> calls;
     calls.insert(Call(1, 10, Envelope()));
     calls.insert(Call(1, 5, Envelope()));

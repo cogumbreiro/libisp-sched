@@ -1,7 +1,21 @@
 #include "MatchMap.hpp"
 
+/* Given an evelope return the associated match. */
+MPIKind to_kind(const Envelope &env) {
+    if (env.isCollectiveType()) {
+        return MPIKind::Collective;
+    } else if (env.isRecvType()) {
+        return env.src == WILDCARD ? MPIKind::ReceiveAny : MPIKind::Receive;
+    } else if (env.isSendType()) {
+        return MPIKind::Send;
+    } else if (env.isWaitType()) {
+        return MPIKind::Wait;
+    }
+    return MPIKind::Unknown;
+}
+
 void MatchMap::add(Call &call) {
-    data[get_kind(call.envelope)].push_back(call);
+    data[to_kind(call.envelope)].push_back(call);
 }
 
 vector<Call> MatchMap::at(const MPIKind key) const {
@@ -65,6 +79,6 @@ vector<MatchSet> MatchMap::getMatchSets() const {
     return ms.distribute(matchReceiveAny());
 }
 
-static vector<MatchSet> get_match_sets(set<Call> & enabled) {
+vector<MatchSet> get_match_sets(set<Call> & enabled) {
     return MatchMap(enabled).getMatchSets();
 }

@@ -19,18 +19,7 @@ enum class MPIKind {
 };
 
 /* Given an evelope return the associated match. */
-MPIKind get_kind(const Envelope &env) {
-    if (env.isCollectiveType()) {
-        return MPIKind::Collective;
-    } else if (env.isRecvType()) {
-        return env.src == WILDCARD ? MPIKind::ReceiveAny : MPIKind::Receive;
-    } else if (env.isSendType()) {
-        return MPIKind::Send;
-    } else if (env.isWaitType()) {
-        return MPIKind::Wait;
-    }
-    return MPIKind::Unknown;
-}
+MPIKind to_kind(const Envelope &env);
 
 struct MatchMap {
     MatchMap(const set<Call> & enabled) {
@@ -40,8 +29,6 @@ struct MatchMap {
     }
 
     vector<MatchSet> getMatchSets() const;
-
-    static vector<MatchSet> get_match_sets(set<Call> & enabled);
 
 private:
     map<MPIKind, vector<Call> > data;
@@ -59,6 +46,7 @@ private:
     vector<MatchSet> matchReceiveAny() const;
 };
 
+vector<MatchSet> get_match_sets(set<Call> & enabled);
 
 
 #endif

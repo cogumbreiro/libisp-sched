@@ -1,6 +1,10 @@
+#define CATCH_CONFIG_MAIN
+#include <catch.hpp>
+
+#include "MatchMap.hpp"
 
 // DOI: 10.1007/978-3-642-11261-4_12
-TEST_CASE("ISP Tool Update: Scalable MPI Verification example-1", "example-1") {
+TEST_CASE("ISP Tool Update: Scalable MPI Verification example-1") {
     /*
      * P0: Isend(to P1, &h0) ; Barrier; Wait(h0);
      * P1: Irecv(*, &h1)     ; Barrier; Wait(h1);
@@ -35,7 +39,7 @@ TEST_CASE("ISP Tool Update: Scalable MPI Verification example-1", "example-1") {
     //trace.insert(c8);
     Call c9(P2, 2, Envelope::Wait(1));
     //trace.insert(c9);
-
+    /*
     // All calls must be enabled
     auto procs = sort_by_procs(trace);
 
@@ -52,6 +56,7 @@ TEST_CASE("ISP Tool Update: Scalable MPI Verification example-1", "example-1") {
     set<Call> proc2 = filter_enabled(procs[P2]);
     REQUIRE(1 == proc2.size());
     REQUIRE(proc2.find(c7) != proc2.end());
+    */
 
     auto ms = get_match_sets(trace);
     // the program is *deterministic*, so only one trace is allowed
