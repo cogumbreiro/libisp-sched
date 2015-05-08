@@ -14,6 +14,12 @@ MPIKind to_kind(const Envelope &env) {
     return MPIKind::Unknown;
 }
 
+Generator::Generator(const set<Call> & enabled) {
+    for (auto call : enabled) {
+        add(call);
+    }
+}
+
 void Generator::add(Call &call) {
     data[to_kind(call.envelope)].push_back(call);
 }

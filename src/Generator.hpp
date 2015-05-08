@@ -26,12 +26,8 @@ MPIKind to_kind(const Envelope &env);
  * to be run. Each batch should be run in a forked environment.
  */
 struct Generator {
-    Generator(const set<Call> & enabled) {
-        for (auto call : enabled) {
-            add(call);
-        }
-    }
-
+    Generator(const set<Call> & enabled);
+    
     vector<MatchSet> getMatchSets() const;
 
 private:
