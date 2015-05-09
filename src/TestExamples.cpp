@@ -18,7 +18,7 @@ TEST_CASE("ISP Tool Update: Scalable MPI Verification example-1") {
     trace.insert(c1);
     Call c2(P0, 1, Envelope::Barrier());
     trace.insert(c2);
-    Call c3(P0, 2, Envelope::Wait(0));
+    //Call c3(P0, 2, Envelope::Wait(0));
     //trace.insert(c3);
     REQUIRE(! c1.completesBefore(c2));
     REQUIRE(! c2.completesBefore(c1));
@@ -28,16 +28,16 @@ TEST_CASE("ISP Tool Update: Scalable MPI Verification example-1") {
     trace.insert(c4);
     Call c5(P1, 1, Envelope::Barrier());
     trace.insert(c5);
-    Call c6(P1, 2, Envelope::Wait(0));
+    //Call c6(P1, 2, Envelope::Wait(0));
     //trace.insert(c6);
     REQUIRE(! c4.completesBefore(c5));
     REQUIRE(! c5.completesBefore(c4));
     // P2:
     Call c7(P2, 0, Envelope::Barrier());
     trace.insert(c7);
-    Call c8(P2, 1, Envelope::ISend(P1));
+    //Call c8(P2, 1, Envelope::ISend(P1));
     //trace.insert(c8);
-    Call c9(P2, 2, Envelope::Wait(1));
+    //Call c9(P2, 2, Envelope::Wait(1));
     //trace.insert(c9);
     /*
     // All calls must be enabled
@@ -64,7 +64,43 @@ TEST_CASE("ISP Tool Update: Scalable MPI Verification example-1") {
     auto tmp = *ms.begin();
     auto inter = tmp.toVector();
     REQUIRE(inter.size() == 3);
-    REQUIRE(inter[0] == c2);
-    REQUIRE(inter[1] == c5);
-    REQUIRE(inter[2] == c7);
+    REQUIRE(inter[0] == c2); // P0:Barrier
+    REQUIRE(inter[1] == c5); // P1:Barrier
+    REQUIRE(inter[2] == c7); // P2:Barrier
+}
+
+TEST_CASE("recev-any-1") {
+    const int P0 = 0, P1 = 1, P2 = 2;
+
+    set<Call> trace;
+    // P0:
+    Call c1(P0, 0, Envelope::ISend(P2));
+    trace.insert(c1);
+
+    // P1:
+    Call c2(P1, 0, Envelope::ISend(P2));
+    trace.insert(c2);
+
+    // P2:
+    Call c3(P2, 0, Envelope::IRecv(WILDCARD));
+    trace.insert(c3);
+
+    Generator g(trace);
+    REQUIRE(g.at(MPIKind::ReceiveAny).size() == 1);
+    REQUIRE(g.at(MPIKind::Send).size() == 2);
+    REQUIRE(c1.envelope.canSend(c3.envelope));
+    REQUIRE(c2.envelope.canSend(c3.envelope));
+    REQUIRE(get_sends_for(c3.envelope, g.at(MPIKind::Send)).size() == 2);
+
+    auto ms = get_match_sets(trace);
+    // the receive any forks 2 states:
+    REQUIRE(2 == ms.size());
+    auto inter = ms[0].toVector();
+    REQUIRE(inter.size() == 2);
+    REQUIRE(inter[0] == Call(P2, 0, Envelope::IRecv(P0)));
+    REQUIRE(inter[1] == c1);
+    inter = ms[1].toVector();
+    REQUIRE(inter.size() == 2);
+    REQUIRE(inter[0] == Call(P2, 0, Envelope::IRecv(P1)));
+    REQUIRE(inter[1] == c2);
 }
