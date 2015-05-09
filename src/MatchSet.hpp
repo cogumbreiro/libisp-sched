@@ -12,11 +12,15 @@ struct MatchSet {
 
     void add(const Call &call);
 
-    void concat(const MatchSet &rhs);
+    void append(const MatchSet &other);
+
+    void prepend(const MatchSet &other);
 
     vector<MatchSet> distribute(vector<MatchSet> many) const;
 
     vector<Call> toVector() const;
+
+    bool empty() const;
 private:
     vector<Call> data;
 };
