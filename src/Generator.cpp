@@ -47,10 +47,10 @@ MatchSet Generator::matchReceive() const {
     return result;
 }
 
-vector<Call> get_sends_for(const Envelope &recv, vector<Call> &sends) {
+vector<Call> get_sends_for(const Envelope &recv, const vector<Call> &sends) {
     vector<Call> result;
     for (auto send : sends) {
-        if (recv.canSend(send.envelope)) {
+        if (send.envelope.canSend(recv)) {
             result.push_back(send);
         }
     }
@@ -79,10 +79,12 @@ vector<MatchSet> Generator::matchReceiveAny() const {
 
 vector<MatchSet> Generator::getMatchSets() const {
     MatchSet ms;
-    ms.concat(matchCollective());
-    ms.concat(matchReceive());
-    ms.concat(matchWait());
-    return ms.distribute(matchReceiveAny());
+    ms.append(std::move(matchCollective()));
+    ms.append(std::move(matchReceive()));
+    ms.append(std::move(matchWait()));
+    vector<MatchSet> result;
+    result.push_back(ms);
+    return ms.empty() ? ms.distribute(matchReceiveAny()) : result;
 }
 
 vector<MatchSet> get_match_sets(set<Call> & enabled) {
