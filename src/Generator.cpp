@@ -61,6 +61,39 @@ MatchSet Generator::matchWait() const {
     return at(MPIKind::Wait);
 }
 
+vector<MatchSet> suffix(const MatchSet match, const vector<MatchSet> matches) {
+    if (match.empty()) {
+        return matches;
+    }
+    if (matches.empty()) {
+        vector<MatchSet> result;
+        result.push_back(match);
+        return result;
+    }
+    vector<MatchSet> result;
+    for (auto other : matches) {
+        other.prepend(match);
+        result.push_back(other);
+    }
+    return result;
+}
+
+vector<MatchSet> permutations(vector<MatchSet> matches) {
+    if (matches.empty()) {
+        return matches;
+    }
+    int offset = 0;
+    vector<MatchSet> result;
+    for (auto curr : matches) {
+        vector<MatchSet> rest = matches;
+        rest.erase(rest.begin() + offset);
+        rest = permutations(rest);
+        suffix(curr, rest);
+        offset++;
+    }
+    return result;
+}
+
 vector<MatchSet> Generator::matchReceiveAny() const {
     vector<MatchSet> result;
     for (auto recv : at(MPIKind::ReceiveAny)) {
@@ -84,7 +117,7 @@ vector<MatchSet> Generator::getMatchSets() const {
     ms.append(std::move(matchWait()));
     vector<MatchSet> result;
     result.push_back(ms);
-    return ms.empty() ? ms.distribute(matchReceiveAny()) : result;
+    return ms.empty() ? matchReceiveAny() : result;
 }
 
 vector<MatchSet> get_match_sets(set<Call> & enabled) {
