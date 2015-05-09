@@ -259,7 +259,7 @@ bool Envelope::matchSend(const Envelope & other) const {
 bool Envelope::canSend(const Envelope & recv) const {
     return isSendType() && recv.isRecvType() &&
         comm == recv.comm &&
-        dest == recv.src &&
+        (dest == recv.src || recv.src == WILDCARD) &&
         (stag == recv.rtag || recv.rtag == WILDCARD);
 }
 
