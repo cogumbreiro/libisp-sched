@@ -16,8 +16,6 @@ struct MatchSet {
 
     void prepend(const MatchSet &other);
 
-    vector<MatchSet> distribute(vector<MatchSet> many) const;
-
     vector<Call> toVector() const;
 
     bool empty() const;

@@ -12,18 +12,6 @@ void MatchSet::prepend(const MatchSet &other) {
     data.insert(data.begin(), other.data.begin(), other.data.end());
 }
 
-vector<MatchSet> MatchSet::distribute(vector<MatchSet> many) const {
-    vector<MatchSet> result;
-    for (auto ms : many) {
-        ms.prepend(data);
-        result.push_back(ms);
-    }
-    if (many.empty()) {
-        result.push_back(data);
-    }
-    return result;
-}
-
 vector<Call> MatchSet::toVector() const {
     return data;
 }
