@@ -21,16 +21,17 @@ enum class MPIKind {
 /* Given an evelope return the associated match. */
 MPIKind to_kind(const Envelope &env);
 
+vector<Call> get_sends_for(const Envelope &recv, const vector<Call> &sends);
+
 /*
  * This class generates a set of batches (MatchSet) of instructions
  * to be run. Each batch should be run in a forked environment.
  */
 struct Generator {
     Generator(const set<Call> & enabled);
-    
+
     vector<MatchSet> getMatchSets() const;
 
-private:
     map<MPIKind, vector<Call> > data;
 
     void add(Call &call);
