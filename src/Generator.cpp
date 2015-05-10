@@ -61,7 +61,7 @@ MatchSet Generator::matchWait() const {
     return at(MPIKind::Wait);
 }
 
-vector<MatchSet> suffix(const MatchSet match, const vector<MatchSet> matches) {
+vector<MatchSet> add_prefix(const MatchSet match, const vector<MatchSet> matches) {
     if (match.empty()) {
         return matches;
     }
@@ -78,18 +78,17 @@ vector<MatchSet> suffix(const MatchSet match, const vector<MatchSet> matches) {
     return result;
 }
 
-vector<MatchSet> permutations(vector<MatchSet> matches) {
-    if (matches.empty()) {
-        return matches;
+vector<MatchSet> mix(vector<MatchSet> left, vector<MatchSet> right) {
+    if (left.empty()) {
+        return right;
     }
-    int offset = 0;
+    if (right.empty()) {
+        return left;
+    }
     vector<MatchSet> result;
-    for (auto curr : matches) {
-        vector<MatchSet> rest = matches;
-        rest.erase(rest.begin() + offset);
-        rest = permutations(rest);
-        suffix(curr, rest);
-        offset++;
+    for (auto elem : left) {
+        auto prefixed = std::move(add_prefix(elem, right));
+        result.insert(result.begin(), prefixed.begin(), prefixed.end());
     }
     return result;
 }
@@ -97,6 +96,7 @@ vector<MatchSet> permutations(vector<MatchSet> matches) {
 vector<MatchSet> Generator::matchReceiveAny() const {
     vector<MatchSet> result;
     for (auto recv : at(MPIKind::ReceiveAny)) {
+        vector<MatchSet> receive;
         auto sends = at(MPIKind::Send);
         for (auto send : get_sends_for(recv.envelope, sends)) {
             MatchSet ms;
@@ -104,8 +104,9 @@ vector<MatchSet> Generator::matchReceiveAny() const {
             recv.envelope.src_wildcard = false;
             ms.add(recv);
             ms.add(send);
-            result.push_back(ms);
+            receive.push_back(ms);
         }
+        result = mix(receive, result);
     }
     return result;
 }

@@ -47,6 +47,8 @@ struct Generator {
     vector<MatchSet> matchReceiveAny() const;
 };
 
+vector<MatchSet> mix(vector<MatchSet>, vector<MatchSet>);
+
 vector<MatchSet> get_match_sets(set<Call> & enabled);
 
 
