@@ -1,6 +1,8 @@
 /*
  * Copyright (c) 2008-2009
  *
+ * Copyright (c) 2015 Tiago Cogumbreiro
+ *
  * School of Computing, University of Utah,
  * Salt Lake City, UT 84112, USA
  *
