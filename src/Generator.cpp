@@ -88,7 +88,7 @@ vector<MatchSet> mix(vector<MatchSet> left, vector<MatchSet> right) {
     vector<MatchSet> result;
     for (auto elem : left) {
         auto prefixed = std::move(add_prefix(elem, right));
-        result.insert(result.begin(), prefixed.begin(), prefixed.end());
+        result.insert(result.end(), prefixed.begin(), prefixed.end());
     }
     return result;
 }

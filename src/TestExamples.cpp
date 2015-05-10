@@ -134,28 +134,27 @@ TEST_CASE("permutations-1") {
 
     REQUIRE(sets.size() == 4);
     {
-        auto p1 = sets[0].toVector();
-        REQUIRE(p1.size() == 2);
-        REQUIRE(p1[0] == c2);
-        REQUIRE(p1[1] == c3);
-    }
-    {
-        auto p2 = sets[1].toVector();
-        REQUIRE(p2.size() == 2);
-        REQUIRE(p2[0] == c2);
-        REQUIRE(p2[1] == c4);
-    }
-    {
-        auto p = sets[2].toVector();
+        auto p = sets[0].toVector();
         REQUIRE(p.size() == 2);
         REQUIRE(p[0] == c1);
         REQUIRE(p[1] == c3);
     }
-
+    {
+        auto p = sets[1].toVector();
+        REQUIRE(p.size() == 2);
+        REQUIRE(p[0] == c1);
+        REQUIRE(p[1] == c4);
+    }
+    {
+        auto p = sets[2].toVector();
+        REQUIRE(p.size() == 2);
+        REQUIRE(p[0] == c2);
+        REQUIRE(p[1] == c3);
+    }
     {
         auto p = sets[3].toVector();
         REQUIRE(p.size() == 2);
-        REQUIRE(p[0] == c1);
+        REQUIRE(p[0] == c2);
         REQUIRE(p[1] == c4);
     }
 }
