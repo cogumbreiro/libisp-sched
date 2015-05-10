@@ -1,9 +1,22 @@
 # libisp-sched: ISP's scheduler
 
-Project to make [ISP]'s scheduler into a library.
+A clean room implementation of [ISP]'s scheduler.
+
+Download:
 
 ```bash
 git clone --recursive https://github.com/cogumbreiro/libisp-sched/
+```
+
+Compile (depends on CMake, Git):
+```
+cmake .
+make
+```
+
+Test:
+```
+make test
 ```
 
 [ISP]: http://formalverification.cs.utah.edu/ISP-Release/
