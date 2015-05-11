@@ -4,7 +4,7 @@
 #include "Generator.hpp"
 
 // DOI: 10.1007/978-3-642-11261-4_12
-TEST_CASE("ISP Tool Update: Scalable MPI Verification example-1.1") {
+TEST_CASE("ISP Tool Update: Scalable MPI Verification Fig.12.1 step-1") {
     /*
      * P0: Isend(to P1, &h0) ; Barrier;
      * P1: Irecv(*, &h1)     ; Barrier;
@@ -41,10 +41,8 @@ TEST_CASE("ISP Tool Update: Scalable MPI Verification example-1.1") {
     REQUIRE(inter[2] == c7); // P2:Barrier
 }
 
-#include "Checker.hpp"
-
 // DOI: 10.1007/978-3-642-11261-4_12
-TEST_CASE("ISP Tool Update: Scalable MPI Verification example-1.2") {
+TEST_CASE("ISP Tool Update: Scalable MPI Verification Fig.12.1 step-2") {
     /*
      * P0: Isend(to P1, &h0) ; Wait(h0);
      * P1: Irecv(*, &h1)     ; Wait(h1);
@@ -76,7 +74,7 @@ TEST_CASE("ISP Tool Update: Scalable MPI Verification example-1.2") {
 }
 
 // DOI: 10.1007/978-3-642-11261-4_12
-TEST_CASE("ISP Tool Update: Scalable MPI Verification example-1.3") {
+TEST_CASE("ISP Tool Update: Scalable MPI Verification Fig.12.1 step-3") {
     /*
      * P0: Isend(to P1, &h0) ; Wait(h0);
      * P1: Irecv(*, &h1)     ; Wait(h1);
