@@ -18,7 +18,7 @@ set<Call> filter_enabled(const set<Call> & calls) {
     return result;
 }
 
-set<Call> check(set<Call> calls) {
+set<Call> check(const set<Call> calls) {
     set<Call> result;
     for (auto proc : sort_by_procs(calls)) {
         auto enabled = filter_enabled(proc.second);
