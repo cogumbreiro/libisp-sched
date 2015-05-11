@@ -12,12 +12,27 @@
 
 #include "Envelope.hpp"
 
-Envelope::Envelope() {
-    dest = 0;
-    dest_wildcard = false;
-    src = 0;
-    src_wildcard = false;
-}
+Envelope::Envelope() :
+    id(0),
+    order_id(0),
+    issue_id(0),
+    func_id(OpType::FINALIZE),
+    count(0),
+    index(0),
+    dest(0),
+    dest_wildcard(false),
+    src(0),
+    src_wildcard(false),
+    stag(0),
+    data_type(0),
+    rtag(0),
+    nprocs(0),
+    comm_split_color(0),
+    comm_id(0),
+    linenumber(0),
+    ref(0),
+    in_exall(0)
+    {}
 
 Envelope::Envelope(const Envelope &o) {
     id = o.id;
@@ -135,12 +150,7 @@ bool Envelope::completesBefore(const Envelope &rhs) const {
     /*
      * 2) Send order rule
      */
-
-    if (isSendType () &&
-        rhs.isSendType () &&
-        dest == rhs.dest &&
-        comm == rhs.comm &&
-        stag == rhs.stag) {
+    if (matchSend(rhs)) {
         return true;
     }
     /*

@@ -76,6 +76,8 @@ TEST_CASE("ISP Tool Update: Scalable MPI Verification example-1.2") {
     //trace.insert(c5);
     Call c6(P1, 2, Envelope::Wait(0));
     trace.insert(c6);
+    REQUIRE(c4.completesBefore(c6));
+    REQUIRE(!c6.completesBefore(c4));
 
     // P2:
     //Call c7(P2, 0, Envelope::Barrier());
@@ -84,6 +86,8 @@ TEST_CASE("ISP Tool Update: Scalable MPI Verification example-1.2") {
     trace.insert(c8);
     Call c9(P2, 2, Envelope::Wait(1));
     trace.insert(c9);
+    REQUIRE(c8.completesBefore(c9));
+    REQUIRE(!c9.completesBefore(c8));
 
     auto ms = get_match_sets(trace);
     // the program is *deterministic*, so only one trace is allowed
