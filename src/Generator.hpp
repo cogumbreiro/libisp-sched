@@ -16,7 +16,7 @@ using std::vector;
 struct Generator {
     CallDB db;
 
-    Generator(const set<Call> & enabled);
+    Generator(const CallDB &db);
 
     MatchSet matchCollective() const;
 
@@ -29,8 +29,8 @@ struct Generator {
     vector<MatchSet> getMatchSets() const;
 };
 
-vector<MatchSet> mix(vector<MatchSet>, vector<MatchSet>);
+vector<MatchSet> mix(const vector<MatchSet>, const vector<MatchSet>);
 
-vector<MatchSet> get_match_sets(set<Call> & enabled);
+vector<MatchSet> get_match_sets(const set<Call> & enabled);
 
 #endif

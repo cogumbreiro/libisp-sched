@@ -1,7 +1,7 @@
 #include "Generator.hpp"
+#include "Checker.hpp"
 
-Generator::Generator(const set<Call> & enabled) :
-    db(enabled) {}
+Generator::Generator(const CallDB &db) : db(db) {}
 
 MatchSet Generator::matchCollective() const {
     // assume all are barrier calls ready to be issued
@@ -40,7 +40,7 @@ vector<MatchSet> add_prefix(const MatchSet match, const vector<MatchSet> matches
     return result;
 }
 
-vector<MatchSet> mix(vector<MatchSet> left, vector<MatchSet> right) {
+vector<MatchSet> mix(const vector<MatchSet> left, const vector<MatchSet> right) {
     if (left.empty()) {
         return right;
     }
@@ -82,6 +82,7 @@ vector<MatchSet> Generator::getMatchSets() const {
     return ms.empty() ? matchReceiveAny() : result;
 }
 
-vector<MatchSet> get_match_sets(set<Call> & enabled) {
-    return Generator(enabled).getMatchSets();
+vector<MatchSet> get_match_sets(const set<Call> & enabled) {
+    CallDB db(check(enabled)); // make sure the DB is checked
+    return Generator(db).getMatchSets();
 }
