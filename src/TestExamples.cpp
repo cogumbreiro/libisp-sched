@@ -85,13 +85,6 @@ TEST_CASE("recev-any-1") {
     Call c3(P2, 0, Envelope::IRecv(WILDCARD));
     trace.insert(c3);
 
-    Generator g(trace);
-    REQUIRE(g.at(MPIKind::ReceiveAny).size() == 1);
-    REQUIRE(g.at(MPIKind::Send).size() == 2);
-    REQUIRE(c1.envelope.canSend(c3.envelope));
-    REQUIRE(c2.envelope.canSend(c3.envelope));
-    REQUIRE(get_sends_for(c3.envelope, g.at(MPIKind::Send)).size() == 2);
-
     auto ms = get_match_sets(trace);
     // the receive any forks 2 states:
     REQUIRE(2 == ms.size());
