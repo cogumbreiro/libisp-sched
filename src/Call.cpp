@@ -8,7 +8,7 @@ bool Call::completesBefore(const Call & call) const {
 bool Call::hasAncestors(const set<Call> & calls) const {
     for (auto other : calls) {
         assert(pid == other.pid);
-        if (index >= other.index) {
+        if (other.index >= index) {
             return false;
         }
         if (other.completesBefore(*this)) {

@@ -46,5 +46,6 @@ add_library(isp-sched STATIC ${SRC})
 
 add_executable_test(test-env src/TestEnvelope.cpp)
 add_executable_test(test-call src/TestCall.cpp)
-add_executable_test(test-ex src/TestExamples.cpp)
+add_executable_test(test-check src/TestChecker.cpp)
 add_executable_test(test-call-db src/TestCallDB.cpp)
+add_executable_test(test-ex src/TestExamples.cpp)
