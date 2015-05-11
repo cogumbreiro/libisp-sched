@@ -38,6 +38,7 @@ set(SRC
     src/Call.cpp
     src/Checker.cpp
     src/MatchSet.cpp
+    src/CallDB.cpp
     src/Generator.cpp
     src/TestCall.cpp
 )
@@ -46,3 +47,4 @@ add_library(isp-sched STATIC ${SRC})
 
 add_executable_test(test-call src/TestCall.cpp)
 add_executable_test(test-ex src/TestExamples.cpp)
+add_executable_test(test-call-db src/TestCallDB.cpp)
