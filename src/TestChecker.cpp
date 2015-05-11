@@ -1,3 +1,7 @@
+#define CATCH_CONFIG_MAIN
+#include <catch.hpp>
+#include <vector>
+
 #include "Checker.cpp"
 
 TEST_CASE("Testing sort_by_procs") {
@@ -26,4 +30,32 @@ TEST_CASE("Testing sort_by_procs") {
 
     auto proc3 = procs[10];
     REQUIRE(proc3.size() == 0);
+}
+
+TEST_CASE("regression-1") {
+    const int P0 = 0, P1 = 1, P2 = 2;
+    // GET THE SECOND PHASE ONCE ALL PROCESSES ARE BLOCKED
+    set<Call> trace;
+    // P0:
+    Call c1(P0, 0, Envelope::ISend(P1));
+    trace.insert(c1);
+    Call c3(P0, 2, Envelope::Wait(0));
+    trace.insert(c3);
+    // P1:
+    Call c4(P1, 0, Envelope::IRecv(WILDCARD));
+    trace.insert(c4);
+    Call c6(P1, 2, Envelope::Wait(0));
+    trace.insert(c6);
+    // P2:
+    Call c8(P2, 1, Envelope::ISend(P1));
+    trace.insert(c8);
+    Call c9(P2, 2, Envelope::Wait(1));
+    trace.insert(c9);
+
+    auto tmp = check(trace);
+    auto ms = vector<Call>(tmp.begin(), tmp.end());
+    REQUIRE(ms.size() == 3);
+    REQUIRE(ms[0] == c1);
+    REQUIRE(ms[1] == c4);
+    REQUIRE(ms[2] == c8);
 }
