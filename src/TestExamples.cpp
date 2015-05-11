@@ -85,7 +85,7 @@ TEST_CASE("ISP Tool Update: Scalable MPI Verification example-1.2") {
         // notice how the IReceive any gets rewritten to receive from P2
         auto inter = ms[1].toVector();
         REQUIRE(inter.size() == 2);
-        REQUIRE(inter[0] == Call(P2, 0, Envelope::IRecv(P2))); // P1:IReceive
+        REQUIRE(inter[0] == Call(P1, 0, Envelope::IRecv(P2))); // P1:IReceive
         REQUIRE(inter[1] == c8); // P2:ISend(P1)
     }
 }
