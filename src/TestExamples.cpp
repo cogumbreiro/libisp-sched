@@ -54,6 +54,38 @@ TEST_CASE("ISP Tool Update: Scalable MPI Verification example-1.2") {
     // GET THE SECOND PHASE ONCE ALL PROCESSES ARE BLOCKED
     set<Call> trace;
     // P0:
+    Call c3(P0, 2, Envelope::Wait(0));
+    trace.insert(c3);
+    // P1:
+    Call c6(P1, 2, Envelope::Wait(0));
+    trace.insert(c6);
+    // P2:
+    Call c9(P2, 2, Envelope::Wait(1));
+    trace.insert(c9);
+
+    auto ms = get_match_sets(trace);
+    // the program is deterministic
+    REQUIRE(1 == ms.size());
+    // one where P1 receives a message from P0
+    // notice how the IReceive any gets rewritten to receive from P0
+    auto inter = ms[0].toVector();
+    REQUIRE(inter.size() == 3);
+    REQUIRE(inter[0] == c3); // P0:Wait
+    REQUIRE(inter[1] == c6); // P1:Wait
+    REQUIRE(inter[2] == c9); // P2:Wait
+}
+
+// DOI: 10.1007/978-3-642-11261-4_12
+TEST_CASE("ISP Tool Update: Scalable MPI Verification example-1.3") {
+    /*
+     * P0: Isend(to P1, &h0) ; Wait(h0);
+     * P1: Irecv(*, &h1)     ; Wait(h1);
+     * P2: Isend(to P1, &h2); Wait(h2);
+     */
+    const int P0 = 0, P1 = 1, P2 = 2;
+    // GET THE SECOND PHASE ONCE ALL PROCESSES ARE BLOCKED
+    set<Call> trace;
+    // P0:
     Call c1(P0, 0, Envelope::ISend(P1));
     trace.insert(c1);
     Call c3(P0, 2, Envelope::Wait(0));
@@ -90,7 +122,7 @@ TEST_CASE("ISP Tool Update: Scalable MPI Verification example-1.2") {
     }
 }
 
-TEST_CASE("Regression 1") {
+TEST_CASE("regression-1") {
     const int P0 = 0, P1 = 1, P2 = 2;
     set<Call> trace;
     Call c1(P0, 0, Envelope::ISend(P1));
