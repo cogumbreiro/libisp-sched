@@ -2,15 +2,15 @@
 
 A clean room implementation of [ISP]'s scheduler.
 
-Download:
+Download and initialize the project:
 
 ```bash
 git clone --recursive https://github.com/cogumbreiro/libisp-sched/
+cmake .
 ```
 
-Compile (depends on CMake, Git):
+Compile:
 ```
-cmake .
 make
 ```
 
