@@ -14,6 +14,13 @@ CPM_AddModule("boost"
     GIT_TAG "1.57.0")
 CPM_Finish()
 
+function(add_executable_test target)
+    add_executable(${target} ${ARGN})
+    target_link_libraries(${target} isp-sched)
+    target_link_libraries(${target} ${CPM_LIBRARIES})
+    add_test(${target} ${target})
+endfunction()
+
 ##
 # Project details:
 ##
@@ -25,7 +32,7 @@ add_definitions (
 
 enable_testing()
 
-SET(SRC
+set(SRC
     src/name2id.cpp
     src/Envelope.cpp
     src/Call.cpp
@@ -37,13 +44,5 @@ SET(SRC
 
 add_library(isp-sched STATIC ${SRC})
 
-add_executable(test-call src/TestCall.cpp)
-target_link_libraries(test-call isp-sched)
-target_link_libraries(test-call ${CPM_LIBRARIES})
-
-add_executable(test-ex src/TestExamples.cpp)
-target_link_libraries(test-ex isp-sched)
-target_link_libraries(test-ex ${CPM_LIBRARIES})
-
-add_test(call test-call)
-add_test(examples test-ex)
+add_executable_test(test-call src/TestCall.cpp)
+add_executable_test(test-ex src/TestExamples.cpp)
