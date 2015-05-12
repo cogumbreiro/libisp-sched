@@ -38,11 +38,6 @@ struct Envelope {
      * function. Only those valid for a particular function must
      * be used. Use with care!
      */
-    int                 id;
-    int                 order_id;
-    int                 issue_id;
-    string         func;
-    string         display_name;
     OpType                 func_id;
     int                 count;
     int                 index;
@@ -55,15 +50,7 @@ struct Envelope {
     int					data_type; //CGD
     std::vector<int>    comm_list;
     std::set<int> req_procs;
-
     int                 rtag;
-    int                 nprocs;
-    int                 comm_split_color;
-    int                 comm_id;
-    string         filename;
-    int                 linenumber;
-    unsigned int        ref;
-    bool in_exall;
 
     Envelope();
 
@@ -72,8 +59,6 @@ struct Envelope {
     bool operator==(const Envelope &) const;
 
     bool operator!=(const Envelope &) const;
-
-    void issue();
 
     bool isSendType () const;
 

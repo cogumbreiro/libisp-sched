@@ -13,9 +13,9 @@
 #include "Envelope.hpp"
 
 Envelope::Envelope() :
-    id(0),
-    order_id(0),
-    issue_id(0),
+//    id(0),
+//    order_id(0),
+//    issue_id(0),
     func_id(OpType::FINALIZE),
     count(0),
     index(0),
@@ -25,21 +25,10 @@ Envelope::Envelope() :
     src_wildcard(false),
     stag(0),
     data_type(0),
-    rtag(0),
-    nprocs(0),
-    comm_split_color(0),
-    comm_id(0),
-    linenumber(0),
-    ref(0),
-    in_exall(0)
+    rtag(0)
     {}
 
 Envelope::Envelope(const Envelope &o) {
-    id = o.id;
-    order_id = o.order_id;
-    issue_id = o.issue_id;
-    func = o.func;
-    display_name = o.display_name;
     func_id = o.func_id;
     count = o.count;
     index = o.index;
@@ -53,23 +42,10 @@ Envelope::Envelope(const Envelope &o) {
     comm_list = o.comm_list;
     req_procs = o.req_procs;
     rtag = o.rtag;
-    nprocs = o.nprocs;
-    comm_split_color = o.comm_split_color;
-    comm_id = o.comm_id;
-    filename = o.filename;
-    linenumber = o.linenumber;
-    ref = o.ref;
-    in_exall = o.in_exall;
 }
 
 bool Envelope::operator== (const Envelope &e) const {
-    if (e.func != func) {
-        return false;
-    }
     switch (e.func_id) {
-    case OpType::ASSERT:
-        return (display_name == e.display_name);
-
     case OpType::BARRIER:
     case OpType::BCAST:
     case OpType::SCATTER:
@@ -112,10 +88,6 @@ bool Envelope::operator== (const Envelope &e) const {
     case OpType::IPROBE:
     case OpType::RECV_INIT:
         return (e.src == src && e.rtag == rtag);
-
-    case OpType::LEAK:
-        return (e.filename == filename && e.linenumber == linenumber &&
-                e.count == count);
 
     case OpType::PCONTROL:
         return (e.stag == stag);
@@ -194,11 +166,6 @@ bool Envelope::completesBefore(const Envelope &rhs) const {
     }
 
     return false;
-}
-
-void Envelope::issue() {
-    static int issue_number = 0;
-    issue_id = ++issue_number;
 }
 
 bool Envelope::isSendType () const {

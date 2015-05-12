@@ -30,8 +30,6 @@ void name2id::doInit () {
         return;
     }
 
-    name_id["Assert"] = OpType::ASSERT;
-
     name_id["MPI_Send"] = OpType::SEND;
     name_id["Send"] = OpType::SEND;
 
@@ -155,17 +153,13 @@ void name2id::doInit () {
     name_id["MPI_Finalize"] = OpType::FINALIZE;
     name_id["Finalize"] = OpType::FINALIZE;
 
-    name_id["Leak"] = OpType::LEAK;
-
-/* == fprs begin == */
     name_id["MPI_Pcontrol"] = OpType::PCONTROL;
     name_id["Pcontrol"] = OpType::PCONTROL;
+
 	name_id["MPI_Exscan"] = OpType::EXSCAN;
 	name_id["Exscan"] = OpType::EXSCAN;
-/* == fprs end == */
 
     init_done = true;
-
 }
 
 optional<OpType> name2id::getId (std::string name) {

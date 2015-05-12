@@ -28,7 +28,6 @@
 using boost::optional;
 
 enum class OpType {
-    ASSERT,
     SEND,
 	RSEND,
     SSEND,
@@ -70,11 +69,8 @@ enum class OpType {
     COMM_FREE,
     ABORT,
     FINALIZE,
-    LEAK
-/* == fprs begin == */
-    , PCONTROL
-	, EXSCAN
-/* == fprs end == */
+    PCONTROL,
+	EXSCAN
 };
 class name2id {
 
