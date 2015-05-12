@@ -62,7 +62,6 @@ vector<MatchSet> Generator::matchReceiveAny() const {
         for (auto send : db.matchReceiveAny(recv.envelope)) {
             MatchSet ms;
             recv.envelope.src = send.pid;
-            recv.envelope.src_wildcard = false;
             ms.add(recv);
             ms.add(send);
             receive.push_back(ms);

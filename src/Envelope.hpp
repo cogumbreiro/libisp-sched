@@ -12,14 +12,6 @@
  * See LICENSE for licensing information
  */
 
-/*
- * ISP: MPI Dynamic Verification Tool
- *
- * File:        Envelope.hpp
- * Description: Implements the various envelopes received from profiled code
- * Contact:     isp-dev@cs.utah.edu
- */
-
 #ifndef _ENVELOPE_HPP
 #define _ENVELOPE_HPP
 
@@ -33,24 +25,16 @@ using std::string;
 #define WILDCARD (-1)
 
 struct Envelope {
-    /*
-     * The envelope contains all the possible parameters for a
-     * function. Only those valid for a particular function must
-     * be used. Use with care!
-     */
-    OpType                 func_id;
-    int                 count;
-    int                 index;
-    int                 dest;
-    bool                dest_wildcard;
-    int                 src;
-    bool                src_wildcard;
-    int                 stag;
-    string         comm;
-    int					data_type; //CGD
-    std::vector<int>    comm_list;
-    std::set<int> req_procs;
-    int                 rtag;
+    int pid;
+    int handle;
+    OpType call_type;
+    int count;
+    int src;
+    int dest;
+    int stag;
+    int rtag;
+    std::set<int> requests;
+    string comm;
 
     Envelope();
 
@@ -80,7 +64,7 @@ struct Envelope {
 
     bool canSend(const Envelope & recv) const;
 
-    bool requested(int index) const;
+    bool requested(int pid) const;
 
     /**
      * Defines the Intra-CB relation
@@ -90,13 +74,13 @@ struct Envelope {
      static Envelope ISend(int dest) {
          Envelope e;
          e.dest = dest;
-         e.func_id = OpType::ISEND;
+         e.call_type = OpType::ISEND;
          return e;
      }
 
      static Envelope Barrier() {
          Envelope e;
-         e.func_id = OpType::BARRIER;
+         e.call_type = OpType::BARRIER;
          return e;
      }
 
@@ -107,8 +91,7 @@ struct Envelope {
      static Envelope IRecv(int src, int rtag) {
          Envelope e;
          e.src = src < 0 ? WILDCARD : src;
-         e.src_wildcard = src < 0;
-         e.func_id = OpType::IRECV;
+         e.call_type = OpType::IRECV;
          e.rtag = rtag < 0 ? WILDCARD : rtag;
          // XXX: e.count
          // XXX: e.comm
@@ -117,8 +100,8 @@ struct Envelope {
 
      static Envelope Wait(int req) {
          Envelope e;
-         e.func_id = OpType::WAIT;
-         e.req_procs.insert(req);
+         e.call_type = OpType::WAIT;
+         e.requests.insert(req);
          // XXX: e.count
          return e;
      }

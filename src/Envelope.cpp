@@ -13,39 +13,29 @@
 #include "Envelope.hpp"
 
 Envelope::Envelope() :
-//    id(0),
-//    order_id(0),
-//    issue_id(0),
-    func_id(OpType::FINALIZE),
+    pid(0),
+    call_type(OpType::FINALIZE),
     count(0),
-    index(0),
-    dest(0),
-    dest_wildcard(false),
     src(0),
-    src_wildcard(false),
+    dest(0),
     stag(0),
-    data_type(0),
     rtag(0)
     {}
 
-Envelope::Envelope(const Envelope &o) {
-    func_id = o.func_id;
-    count = o.count;
-    index = o.index;
-    dest = o.dest;
-    dest_wildcard = o.dest_wildcard;
-    src = o.src;
-    src_wildcard = o.src_wildcard;
-    stag = o.stag;
-    comm = o.comm;
-    data_type = o.data_type;
-    comm_list = o.comm_list;
-    req_procs = o.req_procs;
-    rtag = o.rtag;
-}
+Envelope::Envelope(const Envelope &o) :
+    pid(o.pid),
+    call_type(o.call_type),
+    count(o.count),
+    src(o.src),
+    dest(o.dest),
+    stag(o.stag),
+    rtag(o.rtag),
+    requests(o.requests),
+    comm(o.comm)
+    {}
 
 bool Envelope::operator== (const Envelope &e) const {
-    switch (e.func_id) {
+    switch (e.call_type) {
     case OpType::BARRIER:
     case OpType::BCAST:
     case OpType::SCATTER:
@@ -141,27 +131,27 @@ bool Envelope::completesBefore(const Envelope &rhs) const {
     /*
      * 4) iRecv -> Wait order rule
      */
-    if (func_id == OpType::IRECV &&
-            ((rhs.func_id == OpType::WAIT) ||
-             (rhs.func_id == OpType::TEST)) &&
+    if (call_type == OpType::IRECV &&
+            ((rhs.call_type == OpType::WAIT) ||
+             (rhs.call_type == OpType::TEST)) &&
             count == rhs.count) {
         return true;
     }
 
-    if (func_id == OpType::ISEND &&
-            ((rhs.func_id == OpType::WAIT) ||
-             (rhs.func_id == OpType::TEST)) &&
+    if (call_type == OpType::ISEND &&
+            ((rhs.call_type == OpType::WAIT) ||
+             (rhs.call_type == OpType::TEST)) &&
             count == rhs.count) {
         return true;
     }
 
     if ((rhs.isWaitType() || rhs.isTestType()) &&
-            (func_id == OpType::IRECV ||
-            func_id == OpType::ISEND) && rhs.requested(index)) {
+            (call_type == OpType::IRECV ||
+            call_type == OpType::ISEND) && rhs.requested(handle)) {
         return true;
     }
 
-    if (rhs.func_id == OpType::FINALIZE) {
+    if (rhs.call_type == OpType::FINALIZE) {
         return true;
     }
 
@@ -169,52 +159,52 @@ bool Envelope::completesBefore(const Envelope &rhs) const {
 }
 
 bool Envelope::isSendType () const {
-    return (func_id == OpType::SSEND || func_id == OpType::SEND ||
-            func_id == OpType::RSEND || func_id == OpType::ISEND);
+    return (call_type == OpType::SSEND || call_type == OpType::SEND ||
+            call_type == OpType::RSEND || call_type == OpType::ISEND);
 }
 
 bool Envelope::isRecvType () const {
-    return (func_id == OpType::IRECV || func_id == OpType::RECV ||
-            func_id == OpType::PROBE || func_id == OpType::IPROBE);
+    return (call_type == OpType::IRECV || call_type == OpType::RECV ||
+            call_type == OpType::PROBE || call_type == OpType::IPROBE);
 }
 
 bool Envelope::isCollectiveType () const {
-    return (func_id == OpType::BARRIER || func_id == OpType::BCAST
-            || func_id == OpType::CART_CREATE
-            || func_id == OpType::COMM_CREATE || func_id == OpType::COMM_DUP
-            || func_id == OpType::COMM_SPLIT || func_id == OpType::COMM_FREE
-            || func_id == OpType::ALLREDUCE || func_id == OpType::REDUCE
-            || func_id == OpType::GATHER || func_id == OpType::SCATTER
-            || func_id == OpType::GATHERV || func_id == OpType::SCATTERV
-            || func_id == OpType::ALLGATHER || func_id == OpType::ALLGATHERV
-            || func_id == OpType::ALLTOALL || func_id == OpType::ALLTOALLV
-            || func_id == OpType::SCAN || func_id == OpType::REDUCE_SCATTER);
+    return (call_type == OpType::BARRIER || call_type == OpType::BCAST
+            || call_type == OpType::CART_CREATE
+            || call_type == OpType::COMM_CREATE || call_type == OpType::COMM_DUP
+            || call_type == OpType::COMM_SPLIT || call_type == OpType::COMM_FREE
+            || call_type == OpType::ALLREDUCE || call_type == OpType::REDUCE
+            || call_type == OpType::GATHER || call_type == OpType::SCATTER
+            || call_type == OpType::GATHERV || call_type == OpType::SCATTERV
+            || call_type == OpType::ALLGATHER || call_type == OpType::ALLGATHERV
+            || call_type == OpType::ALLTOALL || call_type == OpType::ALLTOALLV
+            || call_type == OpType::SCAN || call_type == OpType::REDUCE_SCATTER);
 }
 
 bool Envelope::isBlockingType() const {
-    return (func_id == OpType::RECV || func_id == OpType::SSEND
+    return (call_type == OpType::RECV || call_type == OpType::SSEND
             || isProbeType()
-            || func_id == OpType::FINALIZE
+            || call_type == OpType::FINALIZE
             || isTestType()
             || isWaitType()
             || isCollectiveType());
 }
 
 bool Envelope::isProbeType() const {
-    return func_id == OpType::PROBE || func_id == OpType::IPROBE;
+    return call_type == OpType::PROBE || call_type == OpType::IPROBE;
 }
 
 bool Envelope::isWaitType() const {
-    return (func_id == OpType::WAIT
-            || func_id == OpType::WAITANY
-            || func_id == OpType::WAITALL
+    return (call_type == OpType::WAIT
+            || call_type == OpType::WAITANY
+            || call_type == OpType::WAITALL
             );
 }
 
 bool Envelope::isTestType() const {
-    return (func_id == OpType::TEST
-            || func_id == OpType::TESTANY
-            || func_id == OpType::TESTALL
+    return (call_type == OpType::TEST
+            || call_type == OpType::TESTANY
+            || call_type == OpType::TESTALL
             );
 }
 
@@ -241,5 +231,5 @@ bool Envelope::canSend(const Envelope & recv) const {
 }
 
 bool Envelope::requested(int index) const {
-    return req_procs.find(index) != req_procs.end();
+    return requests.find(index) != requests.end();
 }
