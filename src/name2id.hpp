@@ -72,6 +72,59 @@ enum class OpType {
     PCONTROL,
 	EXSCAN
 };
+
+
+bool is_send(OpType call_type) const {
+    return (call_type == OpType::SSEND || call_type == OpType::SEND ||
+            call_type == OpType::RSEND || call_type == OpType::ISEND);
+}
+
+bool is_recv(OpType call_type) const {
+    return (call_type == OpType::IRECV || call_type == OpType::RECV ||
+            call_type == OpType::PROBE || call_type == OpType::IPROBE);
+}
+
+bool is_collective(OpType call_type) const {
+    return (call_type == OpType::BARRIER || call_type == OpType::BCAST
+            || call_type == OpType::CART_CREATE
+            || call_type == OpType::COMM_CREATE || call_type == OpType::COMM_DUP
+            || call_type == OpType::COMM_SPLIT || call_type == OpType::COMM_FREE
+            || call_type == OpType::ALLREDUCE || call_type == OpType::REDUCE
+            || call_type == OpType::GATHER || call_type == OpType::SCATTER
+            || call_type == OpType::GATHERV || call_type == OpType::SCATTERV
+            || call_type == OpType::ALLGATHER || call_type == OpType::ALLGATHERV
+            || call_type == OpType::ALLTOALL || call_type == OpType::ALLTOALLV
+            || call_type == OpType::SCAN || call_type == OpType::REDUCE_SCATTER);
+}
+
+bool is_blocking(OpType call_type) const {
+    return (call_type == OpType::RECV
+            || call_type == OpType::SSEND
+            || call_type == OpType::FINALIZE
+            || isProbeType()
+            || isTestType()
+            || isWaitType()
+            || isCollectiveType());
+}
+
+bool is_probe(OpType call_type) const {
+    return call_type == OpType::PROBE || call_type == OpType::IPROBE;
+}
+
+bool is_wait(OpType call_type) const {
+    return (call_type == OpType::WAIT
+            || call_type == OpType::WAITANY
+            || call_type == OpType::WAITALL
+            );
+}
+
+bool is_test(OpType call_type) const {
+    return (call_type == OpType::TEST
+            || call_type == OpType::TESTANY
+            || call_type == OpType::TESTALL
+            );
+}
+
 class name2id {
 
 

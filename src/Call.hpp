@@ -13,6 +13,55 @@ using std::set;
 using std::vector;
 using std::map;
 
+struct Recv {
+    int count;
+    int datatype;
+    int source;
+    int tag;
+    int comm;
+};
+
+struct Send {
+    int count;
+    int datatype;
+    int dest;
+    int tag;
+    int comm;
+};
+
+struct Sendrecv {
+    int sendcount;
+    int sendtype;
+    int dest;
+    int sendtag;
+    int recvcount;
+    int recvtype;
+    int source;
+    int recvtag;
+    int comm;
+};
+
+struct Wait {
+    std::set<int> request;
+};
+
+struct Bcast {
+    int count;
+    int datatype;
+    int root;
+    int comm;
+};
+
+union Op {
+    Recv recv;
+    Send send;
+    Sendrecv sendrecv;
+    Wait wait;
+    Bcast bcast;
+};
+
+
+
 /*
  * Represents an MPI call issued by a certain process with a `pid`.
  * Each process has a logical closs to uniquely identify its issuing calls,
@@ -24,14 +73,32 @@ struct Call {
     int pid;
     /** the logical time at which this call has been issued (monotonic). */
     int handle;
-    /** The MPI information about the call, as given by ISP. */
-    Envelope envelope;
+    /** The type of the call */
+    OpType op_type;
+    /** number of elements in receive buffer (integer) */
+    union {
+    } op;
+
+    int count;
+    /** rank of source */
+    int src;
+    /** rank of destination */
+    int dest;
+    /** message tag */
+    int stag;
+    /** message tag */
+    int rtag;
+    /** communicator id */
+    int comm;
+    /** request handles */
+    std::set<int> requests;
     /** Defines each field of this object. */
-    Call(int p, int i, Envelope e) : pid(p), handle(i), envelope(e) {}
+    Call(int p, int i, OpType call_type, int count, int src, int dest, int stag,
+    int rtag, int comm, const std::set<int> &reqs);
     /** Copy ctor as one would expect. */
-    Call(const Call & c) : pid(c.pid), handle(c.handle), envelope(c.envelope) {}
+    Call(const Call & c);
     /** Default ctor. */
-    Call() : pid(0), handle(0) {}
+    Call();
     /** Checks if this call precedes another with the completes-before rel */
     bool completesBefore(Call const&) const;
     /** Checks if pid and cid are the same. */

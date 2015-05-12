@@ -157,7 +157,7 @@ bool Envelope::completesBefore(const Envelope &rhs) const {
 
     return false;
 }
-
+/*
 bool Envelope::isSendType () const {
     return (call_type == OpType::SSEND || call_type == OpType::SEND ||
             call_type == OpType::RSEND || call_type == OpType::ISEND);
@@ -207,6 +207,7 @@ bool Envelope::isTestType() const {
             || call_type == OpType::TESTALL
             );
 }
+*/
 
 bool Envelope::matchRecv(const Envelope & other) const {
     return isRecvType() &&

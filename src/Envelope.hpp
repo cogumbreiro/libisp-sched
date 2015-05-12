@@ -43,7 +43,7 @@ struct Envelope {
     bool operator==(const Envelope &) const;
 
     bool operator!=(const Envelope &) const;
-
+/*
     bool isSendType () const;
 
     bool isRecvType () const;
@@ -57,7 +57,7 @@ struct Envelope {
     bool isWaitType() const;
 
     bool isTestType() const;
-
+*/
     bool matchRecv(const Envelope & other) const;
 
     bool matchSend(const Envelope & other) const;
