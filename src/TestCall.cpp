@@ -33,8 +33,8 @@ TEST_CASE("regression-1") {
     const int P0 = 0, P1 = 1, P2 = 2;
     Call c1(P0, 0, Envelope::ISend(P1));
     Call c3(P0, 2, Envelope::Wait(0));
-    REQUIRE(c1.envelope.func_id == OpType::ISEND);
-    REQUIRE(c3.envelope.func_id == OpType::WAIT);
+    REQUIRE(c1.envelope.call_type == OpType::ISEND);
+    REQUIRE(c3.envelope.call_type == OpType::WAIT);
     REQUIRE(c1.envelope.count == 0);
     REQUIRE(c3.envelope.count == 0);
     REQUIRE(c1.envelope.completesBefore(c3.envelope));
@@ -51,7 +51,7 @@ TEST_CASE("regression-2") {
     trace.insert(c1);
     Call c3(P0, 2, Envelope::Wait(0));
     REQUIRE(c1.pid == c3.pid);
-    REQUIRE(c3.index >= c1.index);
+    REQUIRE(c3.handle >= c1.handle);
     REQUIRE(c1.completesBefore(c3));
     REQUIRE(c3.hasAncestors(trace));
 }
