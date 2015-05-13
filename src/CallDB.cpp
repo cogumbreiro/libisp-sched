@@ -2,13 +2,13 @@
 
 /* Given an evelope return the associated match. */
 MPIKind to_kind(const Envelope &env) {
-    if (env.isCollectiveType()) {
+    if (is_collective(env.call_type)) {
         return MPIKind::Collective;
-    } else if (env.isRecvType()) {
+    } else if (is_recv(env.call_type)) {
         return env.src == WILDCARD ? MPIKind::ReceiveAny : MPIKind::Receive;
-    } else if (env.isSendType()) {
+    } else if (is_send(env.call_type)) {
         return MPIKind::Send;
-    } else if (env.isWaitType()) {
+    } else if (is_wait(env.call_type)) {
         return MPIKind::Wait;
     }
     return MPIKind::Unknown;

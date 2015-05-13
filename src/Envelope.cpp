@@ -105,7 +105,7 @@ bool Envelope::completesBefore(const Envelope &rhs) const {
      * Find Intra-Completes-Before :
      * 1) Blocking rule
      */
-    if (isBlockingType()) {
+    if (is_blocking(call_type)) {
         return true;
     }
 
@@ -118,8 +118,8 @@ bool Envelope::completesBefore(const Envelope &rhs) const {
     /*
      * 3) Recv order rule
      */
-    if (isRecvType () &&
-        rhs.isRecvType () &&
+    if (is_recv(call_type) &&
+        is_recv(rhs.call_type) &&
         (src == rhs.src ||
          src == WILDCARD) &&
         comm == rhs.comm &&
@@ -145,7 +145,7 @@ bool Envelope::completesBefore(const Envelope &rhs) const {
         return true;
     }
 
-    if ((rhs.isWaitType() || rhs.isTestType()) &&
+    if ((is_wait(rhs.call_type) || is_test(rhs.call_type)) &&
             (call_type == OpType::IRECV ||
             call_type == OpType::ISEND) && rhs.requested(handle)) {
         return true;
@@ -210,22 +210,22 @@ bool Envelope::isTestType() const {
 */
 
 bool Envelope::matchRecv(const Envelope & other) const {
-    return isRecvType() &&
-        other.isRecvType() &&
+    return is_recv(call_type) &&
+        is_recv(other.call_type) &&
         src == other.src &&
         comm == other.comm &&
         rtag == other.rtag;
 }
 
 bool Envelope::matchSend(const Envelope & other) const {
-    return isSendType() && other.isSendType() &&
+    return is_send(call_type) && is_send(other.call_type) &&
         dest == other.dest &&
         comm == other.comm &&
         stag == other.stag;
 }
 
 bool Envelope::canSend(const Envelope & recv) const {
-    return isSendType() && recv.isRecvType() &&
+    return is_send(call_type) && is_recv(recv.call_type) &&
         comm == recv.comm &&
         (dest == recv.src || recv.src == WILDCARD) &&
         (stag == recv.rtag || recv.rtag == WILDCARD);
