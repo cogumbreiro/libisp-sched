@@ -1,5 +1,16 @@
 #include "CallDB.hpp"
 
+
+/* This enumerator is used internally to categorize the calls. */
+enum class MPIKind {
+    Collective,
+    ReceiveAny,
+    Receive,
+    Send,
+    Wait,
+    Unknown
+};
+
 /* Given an evelope return the associated match. */
 MPIKind to_kind(const Call &env) {
     if (is_collective(env.call_type)) {
@@ -20,35 +31,64 @@ CallDB::CallDB(const set<Call> & enabled) {
     }
 }
 
-void CallDB::add(Call &call) {
-    data[to_kind(call)].push_back(call);
+void CallDB::add(const Call &call) {
+    switch(to_kind(call)) {
+    case MPIKind::Collective:
+        addCollective(call); return;
+    case MPIKind::ReceiveAny:
+        addReceiveAny(call); return;
+    case MPIKind::Receive:
+        addReceive(call); return;
+    case MPIKind::Send:
+        addSend(call); return;
+    case MPIKind::Wait:
+        addWait(call); return;
+    case MPIKind::Unknown:
+        // do nothing
+        return;
+    }
 }
 
-vector<Call> CallDB::at(const MPIKind key) const {
-    auto result = data.find(key);
-    return (result == data.end()) ? vector<Call>() : result->second;
+void CallDB::addCollective(const Call &call) {
+    collective.push_back(call);
+}
+
+void CallDB::addReceiveAny(const Call &call) {
+    receiveAny.push_back(call);
+}
+
+void CallDB::addReceive(const Call &call) {
+    receive.push_back(call);
+}
+
+void CallDB::addSend(const Call &call) {
+    send.push_back(call);
+}
+
+void CallDB::addWait(const Call &call) {
+    wait.push_back(call);
 }
 
 vector<Call> CallDB::findCollective() const {
     // assume all are barrier calls ready to be issued
-    return at(MPIKind::Collective);
+    return collective;
 }
 
 vector<Call> CallDB::findWait() const {
-    return at(MPIKind::Wait);
+    return wait;
 }
 
 vector<Call> CallDB::findReceive() const {
-    return at(MPIKind::Receive);
+    return receive;
 }
 
 vector<Call> CallDB::findReceiveAny() const {
-    return at(MPIKind::ReceiveAny);
+    return receiveAny;
 }
 
 optional<Call> CallDB::matchReceive(const Call &recv) const {
     optional<Call> result;
-    for (auto send : at(MPIKind::Send)) {
+    for (auto send : receive) {
         if (send.canSend(recv)) {
             result.reset(send);
             break;
@@ -68,5 +108,5 @@ vector<Call> get_sends_for(const Call &recv, const vector<Call> &sends) {
 }
 
 vector<Call> CallDB::matchReceiveAny(const Call &recv) const {
-    return get_sends_for(recv, at(MPIKind::Send));
+    return get_sends_for(recv, send);
 }

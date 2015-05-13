@@ -10,23 +10,10 @@ using std::set;
 using std::vector;
 using boost::optional;
 
-/* This enumerator is used internally to categorize the calls. */
-enum class MPIKind {
-    Collective,
-    ReceiveAny,
-    Receive,
-    Send,
-    Wait,
-    Unknown
-};
-
-/* Given an evelope return the associated match. */
-MPIKind to_kind(const Call &call);
-
 struct CallDB {
     CallDB(const set<Call> & enabled);
 
-    void add(Call &call);
+    void add(const Call &call);
 
     vector<Call> findCollective() const;
 
@@ -42,9 +29,16 @@ struct CallDB {
     vector<Call> matchReceiveAny(const Call &) const;
 
 private:
-    vector<Call> at(const MPIKind key) const;
-
-    map<MPIKind, vector<Call> > data;
+    vector<Call> collective;
+    vector<Call> receive;
+    vector<Call> receiveAny;
+    vector<Call> send;
+    vector<Call> wait;
+    void addCollective(const Call &);
+    void addReceive(const Call&);
+    void addReceiveAny(const Call&);
+    void addWait(const Call&);
+    void addSend(const Call&);
 };
 
 #endif
