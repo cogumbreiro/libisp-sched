@@ -22,26 +22,54 @@
 
 #include "name2id.hpp"
 
-#define WILDCARD (-1)
-
 using std::set;
 using std::vector;
 using std::map;
 
+struct WInt {
+    WInt() : wildcard(true), value(0)  {}
+    WInt(int v) : wildcard(false), value(v) {}
+    WInt(const WInt &c) : wildcard(c.wildcard), value(c.value) {}
+    bool operator== (const WInt &r) const {
+        return wildcard == r.wildcard && value == r.value;
+    }
+
+    WInt & operator=(const WInt & other) {
+        wildcard = other.wildcard;
+        value = other.value;
+        return *this;
+    }
+
+    bool isWildcard() const {
+        return wildcard;
+    }
+    int get() const {
+        return value;
+    }
+    bool matches(const WInt &other) const {
+        return isWildcard() || *this == other;
+    }
+private:
+    bool wildcard;
+    int value;
+};
+
+static WInt WILDCARD = WInt();
+
 struct Recv {
-    Recv() : count(0), datatype(0), src(0), tag(0), comm(0) {}
+    Recv() : count(0), datatype(0), tag(0), comm(0) {}
     Recv(const Recv &r) : count(r.count), datatype(r.datatype),
         src(r.src), tag(r.tag), comm(r.comm) {}
 
     int count;
     int datatype;
-    int src;
-    int tag;
+    WInt src;
+    WInt tag;
     int comm;
     inline bool completesBefore(const Recv &rhs) const {
-        return (src == rhs.src || src == WILDCARD)
+        return src.matches(rhs.src)
                 && comm == rhs.comm
-                && (tag == rhs.tag || tag == WILDCARD);
+                && tag.matches(rhs.tag);
     }
     bool operator== (const Recv &r) const {
         return count == r.count
@@ -60,19 +88,19 @@ struct Send {
     int count;
     int datatype;
     int dest;
-    int tag;
+    WInt tag;
     int comm;
     inline bool completesBefore(const Send &rhs) const {
         return dest == rhs.dest
-            && (tag == WILDCARD || tag == rhs.tag)
+            && tag.matches(rhs.tag)
             && comm == rhs.comm;
     }
 
     bool canSend(const Recv & recv) const {
-        return comm == recv.comm &&
-            count == recv.count &&
-            (dest == recv.src || recv.src == WILDCARD) &&
-            (tag == recv.tag || recv.tag == WILDCARD);
+        return comm == recv.comm
+            && count == recv.count
+            && recv.src.matches(dest)
+            && recv.tag.matches(tag);
     }
 
     bool operator== (const Send &s) const {
@@ -172,14 +200,17 @@ struct Process {
         return IRecv(src, WILDCARD);
     }
 
-    Call IRecv(int src, int rtag) {
+    Call IRecv(WInt src, WInt rtag) {
         Call c = create();
-        c.recv.src = src < 0 ? WILDCARD : src;
+        c.recv.src = src;
         c.call_type = OpType::IRECV;
-        c.recv.tag = rtag < 0 ? WILDCARD : rtag;
+        c.recv.tag = rtag;
         // XXX: e.count
         // XXX: e.comm
         return c;
+    }
+    Call IRecv(WInt src) {
+        return IRecv(src, WILDCARD);
     }
 
     Call Wait(int req) {
