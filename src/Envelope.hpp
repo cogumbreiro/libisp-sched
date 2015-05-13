@@ -49,6 +49,10 @@ struct Envelope {
      */
     bool completesBefore(Envelope const &) const;
 
+    bool canSend(const Envelope & recv) const;
+
+    // REMOVE THIS FROM HERE:
+
     static Envelope ISend(int dest) {
         Envelope e;
         e.dest = dest;
@@ -83,15 +87,6 @@ struct Envelope {
         // XXX: e.count
         return e;
     }
-
-    bool canSend(const Envelope & recv) const;
-
-private:
-//    bool matchRecv(const Envelope & other) const;
-
-//    bool matchSend(const Envelope & other) const;
-
-    bool requested(int pid) const;
 
 };
 
