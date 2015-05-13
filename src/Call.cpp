@@ -1,5 +1,21 @@
 #include "Call.hpp"
 
+Call::Call() :
+    pid(0),
+    handle(0),
+    envelope()
+    {}
+
+Call::Call(int p, int i, const Envelope &env):
+    pid(p),
+    handle(i),
+    envelope(env) {}
+
+Call::Call(const Call & c):
+    pid(c.pid),
+    handle(c.handle),
+    envelope(c.envelope) {}
+
 bool Call::completesBefore(const Call & call) const {
     return pid == call.pid && handle < call.handle
             && envelope.completesBefore(call.envelope);

@@ -52,15 +52,6 @@ struct Bcast {
     int comm;
 };
 
-union Op {
-    Recv recv;
-    Send send;
-    Sendrecv sendrecv;
-    Wait wait;
-    Bcast bcast;
-};
-
-
 
 /*
  * Represents an MPI call issued by a certain process with a `pid`.
@@ -73,28 +64,10 @@ struct Call {
     int pid;
     /** the logical time at which this call has been issued (monotonic). */
     int handle;
-    /** The type of the call */
-    OpType op_type;
-    /** number of elements in receive buffer (integer) */
-    union {
-    } op;
-
-    int count;
-    /** rank of source */
-    int src;
-    /** rank of destination */
-    int dest;
-    /** message tag */
-    int stag;
-    /** message tag */
-    int rtag;
-    /** communicator id */
-    int comm;
-    /** request handles */
-    std::set<int> requests;
+    /** The payload of the MPI call */
+    Envelope envelope;
     /** Defines each field of this object. */
-    Call(int p, int i, OpType call_type, int count, int src, int dest, int stag,
-    int rtag, int comm, const std::set<int> &reqs);
+    Call(int p, int i, const Envelope &env);
     /** Copy ctor as one would expect. */
     Call(const Call & c);
     /** Default ctor. */
