@@ -4,7 +4,6 @@
 #include <set>
 #include <boost/optional/optional.hpp>
 
-#include "Envelope.hpp"
 #include "Call.hpp"
 
 using std::set;
@@ -22,7 +21,7 @@ enum class MPIKind {
 };
 
 /* Given an evelope return the associated match. */
-MPIKind to_kind(const Envelope &env);
+MPIKind to_kind(const Call &call);
 
 struct CallDB {
     CallDB(const set<Call> & enabled);
@@ -38,9 +37,9 @@ struct CallDB {
     vector<Call> findReceiveAny() const;
 
     // get a send if it matches the given receive
-    optional<Call> matchReceive(const Envelope &) const;
+    optional<Call> matchReceive(const Call &) const;
     // get all send that match this receive any
-    vector<Call> matchReceiveAny(const Envelope &) const;
+    vector<Call> matchReceiveAny(const Call &) const;
 
 private:
     vector<Call> at(const MPIKind key) const;

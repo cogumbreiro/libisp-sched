@@ -11,7 +11,7 @@ MatchSet Generator::matchCollective() const {
 MatchSet Generator::matchReceive() const {
     MatchSet result;
     for (auto recv : db.findReceive()) {
-        if (auto send = db.matchReceive(recv.envelope)) {
+        if (auto send = db.matchReceive(recv)) {
             result.add(*send);
             result.add(recv);
         }
@@ -59,9 +59,9 @@ vector<MatchSet> Generator::matchReceiveAny() const {
     vector<MatchSet> result;
     for (auto recv : db.findReceiveAny()) {
         vector<MatchSet> receive;
-        for (auto send : db.matchReceiveAny(recv.envelope)) {
+        for (auto send : db.matchReceiveAny(recv)) {
             MatchSet ms;
-            recv.envelope.src = send.pid;
+            recv.recv.src = send.pid;
             ms.add(recv);
             ms.add(send);
             receive.push_back(ms);

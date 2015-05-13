@@ -1,11 +1,11 @@
 #include "CallDB.hpp"
 
 /* Given an evelope return the associated match. */
-MPIKind to_kind(const Envelope &env) {
+MPIKind to_kind(const Call &env) {
     if (is_collective(env.call_type)) {
         return MPIKind::Collective;
     } else if (is_recv(env.call_type)) {
-        return env.src == WILDCARD ? MPIKind::ReceiveAny : MPIKind::Receive;
+        return env.recv.src == WILDCARD ? MPIKind::ReceiveAny : MPIKind::Receive;
     } else if (is_send(env.call_type)) {
         return MPIKind::Send;
     } else if (is_wait(env.call_type)) {
@@ -21,7 +21,7 @@ CallDB::CallDB(const set<Call> & enabled) {
 }
 
 void CallDB::add(Call &call) {
-    data[to_kind(call.envelope)].push_back(call);
+    data[to_kind(call)].push_back(call);
 }
 
 vector<Call> CallDB::at(const MPIKind key) const {
@@ -46,10 +46,10 @@ vector<Call> CallDB::findReceiveAny() const {
     return at(MPIKind::ReceiveAny);
 }
 
-optional<Call> CallDB::matchReceive(const Envelope &recv) const {
+optional<Call> CallDB::matchReceive(const Call &recv) const {
     optional<Call> result;
     for (auto send : at(MPIKind::Send)) {
-        if (send.envelope.canSend(recv)) {
+        if (send.canSend(recv)) {
             result.reset(send);
             break;
         }
@@ -57,16 +57,16 @@ optional<Call> CallDB::matchReceive(const Envelope &recv) const {
     return result;
 }
 
-vector<Call> get_sends_for(const Envelope &recv, const vector<Call> &sends) {
+vector<Call> get_sends_for(const Call &recv, const vector<Call> &sends) {
     vector<Call> result;
     for (auto send : sends) {
-        if (send.envelope.canSend(recv)) {
+        if (send.canSend(recv)) {
             result.push_back(send);
         }
     }
     return result;
 }
 
-vector<Call> CallDB::matchReceiveAny(const Envelope &recv) const {
+vector<Call> CallDB::matchReceiveAny(const Call &recv) const {
     return get_sends_for(recv, at(MPIKind::Send));
 }

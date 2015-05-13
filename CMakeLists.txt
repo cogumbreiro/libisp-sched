@@ -34,7 +34,6 @@ enable_testing()
 
 set(SRC
     src/name2id.cpp
-    src/Envelope.cpp
     src/Call.cpp
     src/Checker.cpp
     src/MatchSet.cpp
@@ -44,7 +43,6 @@ set(SRC
 
 add_library(isp-sched STATIC ${SRC})
 
-add_executable_test(test-env src/TestEnvelope.cpp)
 add_executable_test(test-call src/TestCall.cpp)
 add_executable_test(test-check src/TestChecker.cpp)
 add_executable_test(test-call-db src/TestCallDB.cpp)
