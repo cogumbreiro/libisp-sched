@@ -35,7 +35,7 @@ TEST_CASE("regression-1") {
     Call c3 = P0.Wait(c1.handle);
     REQUIRE(c1.call_type == OpType::ISEND);
     REQUIRE(c3.call_type == OpType::WAIT);
-    REQUIRE(c1.send.count == 0);
+//    REQUIRE(c1.send.count == 0);
     REQUIRE(c1 < c3);
     REQUIRE(c1.completesBefore(c3));
 //    REQUIRE(c1.envelope == Envelope::ISend(P1));

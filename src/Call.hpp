@@ -57,58 +57,35 @@ private:
 static WInt WILDCARD = WInt();
 
 struct Recv {
-    Recv() : count(0), datatype(0), tag(0), comm(0) {}
-    Recv(const Recv &r) : count(r.count), datatype(r.datatype),
-        src(r.src), tag(r.tag), comm(r.comm) {}
+    Recv() : src(0), tag(0) {}
+    Recv(const Recv &r) : src(r.src), tag(r.tag) {}
 
-    int count;
-    int datatype;
     WInt src;
     WInt tag;
-    int comm;
     inline bool completesBefore(const Recv &rhs) const {
-        return src.matches(rhs.src)
-                && comm == rhs.comm
-                && tag.matches(rhs.tag);
+        return src.matches(rhs.src) && tag.matches(rhs.tag);
     }
     bool operator== (const Recv &r) const {
-        return count == r.count
-                && datatype == r.datatype
-                && src == r.src
-                && tag == r.tag
-                && comm == r.comm;
+        return src == r.src && tag == r.tag;
     }
 };
 
 struct Send {
-    Send() : count(0), datatype(0), dest(0), tag(0), comm(0) {}
-    Send(const Send &s) : count(s.count), datatype(s.datatype), dest(s.dest),
-        tag(s.tag), comm(s.comm) {}
+    Send() : dest(0), tag(0) {}
+    Send(const Send &s) : dest(s.dest), tag(s.tag) {}
 
-    int count;
-    int datatype;
     int dest;
-    WInt tag;
-    int comm;
+    int tag;
     inline bool completesBefore(const Send &rhs) const {
-        return dest == rhs.dest
-            && tag.matches(rhs.tag)
-            && comm == rhs.comm;
+        return dest == rhs.dest && rhs.tag == tag;
     }
 
     bool canSend(const Recv & recv) const {
-        return comm == recv.comm
-            && count == recv.count
-            && recv.src.matches(dest)
-            && recv.tag.matches(tag);
+        return recv.src.matches(dest) && recv.tag.matches(tag);
     }
 
     bool operator== (const Send &s) const {
-        return count == s.count
-                && datatype == s.datatype
-                && dest == s.dest
-                && tag == s.tag
-                && comm == s.comm;
+        return dest == s.dest && tag == s.tag;
     }
 
 };
@@ -130,6 +107,17 @@ private:
     std::set<int> requests;
 };
 
+enum class Field {
+    Source,
+    Destination,
+    Datatype,
+    Root,
+    Communicator,
+    Op,
+    Sendcount,
+    Recvcount,
+};
+
 /*
  * Represents an MPI call issued by a certain process with a `pid`.
  * Each process has a logical closs to uniquely identify its issuing calls,
@@ -147,6 +135,7 @@ struct Call {
     Recv recv;
     Send send;
     Wait wait;
+    map<Field, int> metadata;
     /** Defines each field of this object. */
     Call(int p, int i);
     /** Copy ctor as one would expect. */
