@@ -43,68 +43,56 @@ struct Envelope {
     bool operator==(const Envelope &) const;
 
     bool operator!=(const Envelope &) const;
-/*
-    bool isSendType () const;
-
-    bool isRecvType () const;
-
-    bool isCollectiveType () const;
-
-    bool isBlockingType() const;
-
-    bool isProbeType() const;
-
-    bool isWaitType() const;
-
-    bool isTestType() const;
-*/
-    bool matchRecv(const Envelope & other) const;
-
-    bool matchSend(const Envelope & other) const;
-
-    bool canSend(const Envelope & recv) const;
-
-    bool requested(int pid) const;
 
     /**
      * Defines the Intra-CB relation
      */
-     bool completesBefore(Envelope const &) const;
+    bool completesBefore(Envelope const &) const;
 
-     static Envelope ISend(int dest) {
-         Envelope e;
-         e.dest = dest;
-         e.call_type = OpType::ISEND;
-         return e;
-     }
+    static Envelope ISend(int dest) {
+        Envelope e;
+        e.dest = dest;
+        e.call_type = OpType::ISEND;
+        return e;
+    }
 
-     static Envelope Barrier() {
-         Envelope e;
-         e.call_type = OpType::BARRIER;
-         return e;
-     }
+    static Envelope Barrier() {
+        Envelope e;
+        e.call_type = OpType::BARRIER;
+        return e;
+    }
 
-     static Envelope IRecv(int src) {
-         return IRecv(src, WILDCARD);
-     }
+    static Envelope IRecv(int src) {
+        return IRecv(src, WILDCARD);
+    }
 
-     static Envelope IRecv(int src, int rtag) {
-         Envelope e;
-         e.src = src < 0 ? WILDCARD : src;
-         e.call_type = OpType::IRECV;
-         e.rtag = rtag < 0 ? WILDCARD : rtag;
-         // XXX: e.count
-         // XXX: e.comm
-         return e;
-     }
+    static Envelope IRecv(int src, int rtag) {
+        Envelope e;
+        e.src = src < 0 ? WILDCARD : src;
+        e.call_type = OpType::IRECV;
+        e.rtag = rtag < 0 ? WILDCARD : rtag;
+        // XXX: e.count
+        // XXX: e.comm
+        return e;
+    }
 
-     static Envelope Wait(int req) {
-         Envelope e;
-         e.call_type = OpType::WAIT;
-         e.requests.insert(req);
-         // XXX: e.count
-         return e;
-     }
+    static Envelope Wait(int req) {
+        Envelope e;
+        e.call_type = OpType::WAIT;
+        e.requests.insert(req);
+        // XXX: e.count
+        return e;
+    }
+
+    bool canSend(const Envelope & recv) const;
+
+private:
+//    bool matchRecv(const Envelope & other) const;
+
+//    bool matchSend(const Envelope & other) const;
+
+    bool requested(int pid) const;
+
 };
 
 #endif
