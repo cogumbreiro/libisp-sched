@@ -8,7 +8,8 @@ Call::Call(const Call & c):
     call_type(c.call_type),
     recv(c.recv),
     send(c.send),
-    wait(c.wait) {}
+    wait(c.wait),
+    collective(c.collective) {}
 
 bool Call::completesBefore(const Call & rhs) const {
     if (pid != rhs.pid || handle >= rhs.handle) {
