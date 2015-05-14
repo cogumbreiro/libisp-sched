@@ -82,7 +82,7 @@ TEST_CASE("ISP Tool Update: Scalable MPI Verification Fig.12.1 step-3") {
     /*
      * P0: Isend(to P1, &h0) ; Wait(h0);
      * P1: Irecv(*, &h1)     ; Wait(h1);
-     * P2: Isend(to P1, &h2); Wait(h2);
+     * P2: Isend(to P1, &h2) ; Wait(h2);
      */
     Process P0(0), P1(1), P2(2);
     Schedule s;
@@ -108,9 +108,6 @@ TEST_CASE("ISP Tool Update: Scalable MPI Verification Fig.12.1 step-3") {
     s.calls.push_back(c8);
     Call c9 = P2.wait(c8.handle);
     s.calls.push_back(c9);
-
-    REQUIRE(c8.canSend(c4));
-    REQUIRE(c1.canSend(c4));
 
     auto ms = get_match_sets(s);
     // the program is nondeterministic; two traces are allowed

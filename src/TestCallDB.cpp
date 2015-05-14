@@ -37,7 +37,7 @@ TEST_CASE("finalize") {
     s.calls.push_back(P1.finalize());
     REQUIRE(CallDB(s).getFinalize().size() == 2);
     REQUIRE(CallDB(s).findFinalize().empty());
-    s.calls.push_back(P1.finalize());
+    s.calls.push_back(P2.finalize());
     REQUIRE(CallDB(s).getFinalize().size() == 3);
     REQUIRE(CallDB(s).findFinalize().size() == 3);
 }
@@ -54,7 +54,7 @@ TEST_CASE("barrier") {
     s.calls.push_back(P1.barrier(10));
     REQUIRE(CallDB(s).getCollective(OpType::BARRIER, 10).size() == 2);
     REQUIRE(CallDB(s).findCollective().empty());
-    s.calls.push_back(P1.barrier(10));
+    s.calls.push_back(P2.barrier(10));
     REQUIRE(CallDB(s).getCollective(OpType::BARRIER, 10).size() == 3);
     REQUIRE(CallDB(s).participantsFor(10) == 3);
     REQUIRE(CallDB(s).findCollective().size() == 3);
@@ -80,4 +80,32 @@ TEST_CASE("regression-1") {
     s.calls.push_back(c7);
     CallDB db(s);
     REQUIRE(db.findCollective().size() == 3);
+}
+
+TEST_CASE("regression-2") {
+    Process P0(0), P1(1), P2(2);
+    Schedule s;
+    s.procs = 3;
+    s.participants[0] = 3; // barrier is registered with communicator 0
+
+    P0.curr_handle = 1;
+    Call c1 = P0.isend(P1.pid);
+    s.calls.push_back(c1);
+    Call c3 = P0.wait(c1.handle);
+    s.calls.push_back(c3);
+
+    P1.curr_handle = 1;
+    Call c4 = P1.irecv(WILDCARD);
+    s.calls.push_back(c4);
+    Call c6 = P1.wait(c4.handle);
+    s.calls.push_back(c6);
+
+    P0.curr_handle = 1;
+    Call c8 = P2.isend(P1.pid);
+    s.calls.push_back(c8);
+    Call c9 = P2.wait(c8.handle);
+    s.calls.push_back(c9);
+
+    CallDB db(s);
+    REQUIRE(db.matchReceiveAny(c4).size() == 2);
 }

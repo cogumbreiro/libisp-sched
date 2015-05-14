@@ -37,6 +37,42 @@ TEST_CASE("regression-1") {
     }
 }
 
+TEST_CASE("regression-2") {
+    Process P0(0), P1(1), P2(2);
+    Schedule s;
+    s.procs = 3;
+    s.participants[0] = 3; // barrier is registered with communicator 0
+
+    P0.curr_handle = 1;
+    Call c1 = P0.isend(P1.pid);
+    s.calls.push_back(c1);
+    Call c3 = P0.wait(c1.handle);
+    s.calls.push_back(c3);
+
+    P1.curr_handle = 1;
+    Call c4 = P1.irecv(WILDCARD);
+    s.calls.push_back(c4);
+    Call c6 = P1.wait(c4.handle);
+    s.calls.push_back(c6);
+
+    P0.curr_handle = 1;
+    Call c8 = P2.isend(P1.pid);
+    s.calls.push_back(c8);
+    Call c9 = P2.wait(c8.handle);
+    s.calls.push_back(c9);
+
+    CallDB db(s);
+    Generator g(db);
+
+    REQUIRE(g.matchReceiveAny().size() == 2);
+    REQUIRE(g.matchCollective().empty());
+    REQUIRE(g.matchFinalize().empty());
+    REQUIRE(g.matchReceive().empty());
+    REQUIRE(g.matchWait().empty());
+    REQUIRE(g.getMatchSets().size() == 2);
+
+}
+
 
 TEST_CASE("recev-any-1") {
     Process P0(0), P1(1), P2(2);

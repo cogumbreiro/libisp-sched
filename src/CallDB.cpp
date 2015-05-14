@@ -1,4 +1,5 @@
 #include "CallDB.hpp"
+#include "Checker.hpp"
 #include <cassert>
 
 /* This enumerator is used internally to categorize the calls. */
@@ -30,7 +31,8 @@ MPIKind to_kind(const Call &env) {
 
 CallDB::CallDB(const Schedule &schedule) :
         procs(schedule.procs), participants(schedule.participants) {
-    for (auto call : schedule.calls) {
+    set<Call> calls = set<Call>(schedule.calls.begin(), schedule.calls.end());
+    for (auto call : check(calls)) {
         add(call);
     }
 }
