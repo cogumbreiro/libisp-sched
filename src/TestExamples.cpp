@@ -47,23 +47,24 @@ TEST_CASE("ISP Tool Update: Scalable MPI Verification Fig.12.1 step-2") {
      * P2: Wait(h2);
      */
     Process P0(0), P1(1), P2(2);
+    Schedule s;
+    s.procs = 3;
+    s.participants[0] = 3; // barrier is registered with communicator 0
+
     // GET THE SECOND PHASE ONCE ALL PROCESSES ARE BLOCKED
-    vector<Call> trace;
     // P0:
     P0.curr_handle = 2;
     Call c3 = P0.wait(0);
-    trace.push_back(c3);
+    s.calls.push_back(c3);
     // P1:
     P1.curr_handle = 2;
     Call c6 = P1.wait(0);
-    trace.push_back(c6);
+    s.calls.push_back(c6);
     // P2:
     P2.curr_handle = 2;
     Call c9 = P2.wait(1);
-    trace.push_back(c9);
+    s.calls.push_back(c9);
 
-    Schedule s;
-    s.calls = trace;
     auto ms = get_match_sets(s);
     // the program is deterministic
     REQUIRE(1 == ms.size());
@@ -84,32 +85,33 @@ TEST_CASE("ISP Tool Update: Scalable MPI Verification Fig.12.1 step-3") {
      * P2: Isend(to P1, &h2); Wait(h2);
      */
     Process P0(0), P1(1), P2(2);
-    // GET THE SECOND PHASE ONCE ALL PROCESSES ARE BLOCKED
-    vector<Call> trace;
+    Schedule s;
+    s.procs = 3;
+    s.participants[0] = 3; // barrier is registered with communicator 0
+    // GET THE THIRD PHASE ONCE ALL PROCESSES ARE BLOCKED
+
     // P0:
     P0.curr_handle = 1;
     Call c1 = P0.isend(P1.pid);
-    trace.push_back(c1);
+    s.calls.push_back(c1);
     Call c3 = P0.wait(c1.handle);
-    trace.push_back(c3);
+    s.calls.push_back(c3);
     // P1:
     P1.curr_handle = 1;
     Call c4 = P1.irecv(WILDCARD);
-    trace.push_back(c4);
+    s.calls.push_back(c4);
     Call c6 = P1.wait(c4.handle);
-    trace.push_back(c6);
+    s.calls.push_back(c6);
     // P2:
     P0.curr_handle = 1;
     Call c8 = P2.isend(P1.pid);
-    trace.push_back(c8);
+    s.calls.push_back(c8);
     Call c9 = P2.wait(c8.handle);
-    trace.push_back(c9);
+    s.calls.push_back(c9);
 
     REQUIRE(c8.canSend(c4));
     REQUIRE(c1.canSend(c4));
 
-    Schedule s;
-    s.calls = trace;
     auto ms = get_match_sets(s);
     // the program is nondeterministic; two traces are allowed
     REQUIRE(2 == ms.size());
