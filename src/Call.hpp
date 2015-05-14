@@ -114,6 +114,7 @@ enum class Field {
     Root,
     Communicator,
     Op,
+    Count,
     Sendcount,
     Recvcount,
 };
@@ -186,20 +187,66 @@ struct Process {
     }
 
     Call IRecv(int src) {
-        return IRecv(src, WILDCARD);
+        return IRecv(WInt(src));
     }
 
-    Call IRecv(WInt src, WInt rtag) {
+    Call IRecv(WInt src) {
+        return IRecv(0, 0, src, WILDCARD, 0);
+    }
+
+    Call IRecv(int count, int datatype, WInt src, WInt rtag, int comm) {
         Call c = create();
         c.recv.src = src;
         c.call_type = OpType::IRECV;
         c.recv.tag = rtag;
-        // XXX: e.count
-        // XXX: e.comm
+        c.metadata[Field::Count] = count;
+        c.metadata[Field::Datatype] = datatype;
+        c.metadata[Field::Communicator] = comm;
         return c;
     }
-    Call IRecv(WInt src) {
-        return IRecv(src, WILDCARD);
+
+    Call Recv(int count, int datatype, WInt src, WInt rtag, int comm) {
+        Call c = create();
+        c.recv.src = src;
+        c.call_type = OpType::RECV;
+        c.recv.tag = rtag;
+        c.metadata[Field::Count] = count;
+        c.metadata[Field::Datatype] = datatype;
+        c.metadata[Field::Communicator] = comm;
+        return c;
+    }
+
+    Call Send(int count, int datatype, int dest, int tag, int comm) {
+        Call c = create();
+        c.call_type = OpType::SEND;
+        c.send.dest = dest;
+        c.send.tag = tag;
+        c.metadata[Field::Count] = count;
+        c.metadata[Field::Datatype] = datatype;
+        c.metadata[Field::Communicator] = comm;
+        return c;
+    }
+
+    Call Ssend(int count, int datatype, int dest, int tag, int comm) {
+        Call c = create();
+        c.call_type = OpType::SSEND;
+        c.send.dest = dest;
+        c.send.tag = tag;
+        c.metadata[Field::Count] = count;
+        c.metadata[Field::Datatype] = datatype;
+        c.metadata[Field::Communicator] = comm;
+        return c;
+    }
+
+    Call Isend(int count, int datatype, int dest, int tag, int comm) {
+        Call c = create();
+        c.call_type = OpType::ISEND;
+        c.send.dest = dest;
+        c.send.tag = tag;
+        c.metadata[Field::Count] = count;
+        c.metadata[Field::Datatype] = datatype;
+        c.metadata[Field::Communicator] = comm;
+        return c;
     }
 
     Call Wait(int req) {
