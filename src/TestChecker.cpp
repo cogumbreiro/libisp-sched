@@ -4,27 +4,34 @@
 
 #include "Checker.cpp"
 
+Call call(int pid, int handle) {
+    Call c;
+    c.pid = pid;
+    c.handle = handle;
+    return c;
+}
+
 TEST_CASE("Testing sort_by_procs") {
     set<Call> calls;
-    calls.insert(Call(1, 10));
-    calls.insert(Call(1, 5));
-    calls.insert(Call(0, 2));
+    calls.insert(call(1, 10));
+    calls.insert(call(1, 5));
+    calls.insert(call(0, 2));
 
     auto procs = sort_by_procs(calls);
     auto proc1 = procs[0];
     auto it = proc1.begin();
     REQUIRE(it != proc1.end());
-    REQUIRE((*it) == Call(0, 2));
+    REQUIRE((*it) == call(0, 2));
     it++;
     REQUIRE(it == proc1.end());
 
     auto proc2 = procs[1];
     it = proc2.begin();
     REQUIRE(it != proc2.end());
-    REQUIRE((*it) == Call(1, 5));
+    REQUIRE((*it) == call(1, 5));
     it++;
     REQUIRE(it != proc2.end());
-    REQUIRE((*it) == Call(1, 10));
+    REQUIRE((*it) == call(1, 10));
     it++;
     REQUIRE(it == proc2.end());
 
@@ -37,19 +44,19 @@ TEST_CASE("regression-1") {
     // GET THE SECOND PHASE ONCE ALL PROCESSES ARE BLOCKED
     set<Call> trace;
     // P0:
-    Call c1 = P0.ISend(P1.pid);
+    Call c1 = P0.isend(P1.pid);
     trace.insert(c1);
-    Call c3 = P0.Wait(c1.handle);
+    Call c3 = P0.wait(c1.handle);
     trace.insert(c3);
     // P1:
-    Call c4 = P1.IRecv(WILDCARD);
+    Call c4 = P1.irecv(WILDCARD);
     trace.insert(c4);
-    Call c6 = P1.Wait(c4.handle);
+    Call c6 = P1.wait(c4.handle);
     trace.insert(c6);
     // P2:
-    Call c8 = P2.ISend(P1.pid);
+    Call c8 = P2.isend(P1.pid);
     trace.insert(c8);
-    Call c9 = P2.Wait(c8.handle);
+    Call c9 = P2.wait(c8.handle);
     trace.insert(c9);
 
     auto tmp = check(trace);

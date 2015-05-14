@@ -7,11 +7,11 @@
 TEST_CASE("regression-1") {
     Process P0(0), P1(1), P2(2);
     set<Call> trace;
-    Call c1 = P0.ISend(P1.pid);
+    Call c1 = P0.isend(P1.pid);
     trace.insert(c1);
-    Call c4 = P1.IRecv(WILDCARD);
+    Call c4 = P1.irecv(WILDCARD);
     trace.insert(c4);
-    Call c8 = P2.ISend(P1.pid);
+    Call c8 = P2.isend(P1.pid);
     trace.insert(c8);
 
     auto ms = get_match_sets(trace);
@@ -41,15 +41,15 @@ TEST_CASE("recev-any-1") {
 
     set<Call> trace;
     // P0:
-    Call c1 = P0.ISend(P2.pid);
+    Call c1 = P0.isend(P2.pid);
     trace.insert(c1);
 
     // P1:
-    Call c2 = P1.ISend(P2.pid);
+    Call c2 = P1.isend(P2.pid);
     trace.insert(c2);
 
     // P2:
-    Call c3 = P2.IRecv(WILDCARD);
+    Call c3 = P2.irecv(WILDCARD);
     trace.insert(c3);
 
     auto ms = get_match_sets(trace);
@@ -73,23 +73,23 @@ TEST_CASE("permutations-1") {
     Process P0(0), P1(1), P2(2);
 
     // P0:
-    Call c1 = P0.ISend(P0.pid);
+    Call c1 = P0.isend(P0.pid);
     MatchSet s1;
     s1.add(c1);
 
     // P1:
-    Call c2 = P1.ISend(P1.pid);
+    Call c2 = P1.isend(P1.pid);
     MatchSet s2;
     s2.add(c2);
     vector<MatchSet> v1 {s1, s2};
 
     // P2:
-    Call c3 = P2.IRecv(WILDCARD);
+    Call c3 = P2.irecv(WILDCARD);
     MatchSet s3;
     s3.add(c3);
 
     // P2:
-    Call c4 = P2.IRecv(WILDCARD);
+    Call c4 = P2.irecv(WILDCARD);
     MatchSet s4;
     s4.add(c4);
     vector<MatchSet> v2 {s3, s4};

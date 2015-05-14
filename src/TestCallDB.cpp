@@ -7,15 +7,15 @@ TEST_CASE("recev-any-1") {
 
     set<Call> trace;
     // P0:
-    Call c1 = P0.ISend(P2.pid);
+    Call c1 = P0.isend(P2.pid);
     trace.insert(c1);
 
     // P1:
-    Call c2 = P1.ISend(P2.pid);
+    Call c2 = P1.isend(P2.pid);
     trace.insert(c2);
 
     // P2:
-    Call c3 = P2.IRecv(WILDCARD);
+    Call c3 = P2.irecv(WILDCARD);
     trace.insert(c3);
 
     CallDB db(trace);

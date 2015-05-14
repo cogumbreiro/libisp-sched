@@ -56,38 +56,92 @@ private:
 
 static WInt WILDCARD = WInt();
 
-struct Recv {
-    Recv() : src(0), tag(0) {}
-    Recv(const Recv &r) : src(r.src), tag(r.tag) {}
+enum class Field {
+    Source,
+    Destination,
+    Datatype,
+    Root,
+    Communicator,
+    Op,
+    Count,
+    Sendcount,
+    Recvcount,
+};
 
+struct Receive {
+    Receive() : count(0), datatype(0), src(0), tag(0), comm(0) {}
+    Receive(const Receive &r) : count(r.count), datatype(r.datatype), src(r.src),
+        tag(r.tag), comm(r.comm) {}
+    Receive(int count, int datatype, WInt src, WInt tag, int comm) :
+        count(count), datatype(datatype), src(src), tag(tag), comm(comm) {}
+
+    int count;
+    int datatype;
     WInt src;
     WInt tag;
-    inline bool completesBefore(const Recv &rhs) const {
-        return src.matches(rhs.src) && tag.matches(rhs.tag);
+    int comm;
+
+    inline bool matches(const Receive &rhs) const {
+        return count == rhs.count
+            && datatype == rhs.datatype
+            && src.matches(rhs.src)
+            && tag.matches(rhs.tag)
+            && comm == rhs.comm;
+
+
     }
-    bool operator== (const Recv &r) const {
-        return src == r.src && tag == r.tag;
+    bool operator== (const Receive &r) const {
+        return count == r.count
+                && datatype == r.datatype
+                && src == r.src
+                && tag == r.tag
+                && comm == r.comm;
     }
 };
 
 struct Send {
-    Send() : dest(0), tag(0) {}
-    Send(const Send &s) : dest(s.dest), tag(s.tag) {}
+    Send() : count(0), datatype(0), dest(0), tag(0), comm(0) {}
+    Send(const Send &s) : count(s.count), datatype(s.datatype), dest(s.dest),
+            tag(s.tag), comm(s.comm) {}
+    Send(int count, int datatype, int dest, int tag, int comm) : count(count), datatype(datatype), dest(dest),
+            tag(tag), comm(comm) {}
 
+    int count;
+    int datatype;
     int dest;
     int tag;
-    inline bool completesBefore(const Send &rhs) const {
-        return dest == rhs.dest && rhs.tag == tag;
-    }
+    int comm;
 
-    bool canSend(const Recv & recv) const {
-        return recv.src.matches(dest) && recv.tag.matches(tag);
+    bool canSend(const Receive & recv) const {
+        return count == recv.count
+                && datatype == recv.datatype
+                && recv.src.matches(dest)
+                && recv.tag.matches(tag)
+                && recv.comm == comm;
     }
 
     bool operator== (const Send &s) const {
-        return dest == s.dest && tag == s.tag;
+        return count == s.count
+                && datatype == s.datatype
+                && dest == s.dest
+                && tag == s.tag
+                && comm == s.comm;
     }
 
+};
+
+struct Collective {
+
+    void set(Field f, int v) {
+        data[f] = v;
+    }
+
+    bool operator==(const Collective &c) {
+        return data == c.data;
+    }
+
+private:
+    map<Field, int> data;
 };
 
 struct Wait {
@@ -107,18 +161,6 @@ private:
     std::set<int> requests;
 };
 
-enum class Field {
-    Source,
-    Destination,
-    Datatype,
-    Root,
-    Communicator,
-    Op,
-    Count,
-    Sendcount,
-    Recvcount,
-};
-
 /*
  * Represents an MPI call issued by a certain process with a `pid`.
  * Each process has a logical closs to uniquely identify its issuing calls,
@@ -133,12 +175,10 @@ struct Call {
     /** The op type defines which payload to use */
     OpType call_type;
     /** The payload of the MPI call */
-    Recv recv;
+    Receive recv;
     Send send;
     Wait wait;
-    map<Field, int> metadata;
-    /** Defines each field of this object. */
-    Call(int p, int i);
+    Collective collective;
     /** Copy ctor as one would expect. */
     Call(const Call & c);
     /** Default ctor. */
@@ -167,94 +207,79 @@ struct Process {
     int curr_handle;
     Process(int pid) : pid(pid), curr_handle(0) {}
 
-    Call create() {
-        return Call(pid, curr_handle++);
+    Call create(OpType call_type) {
+        Call c;
+        c.pid = pid;
+        c.handle = curr_handle++;
+        c.call_type = call_type;
+        return c;
+    }
+
+    Call create(OpType call_type, const Receive &recv) {
+        Call c = create(call_type);
+        c.recv = recv;
+        return c;
+    }
+
+    Call create(OpType call_type, const Send &send) {
+        Call c = create(call_type);
+        c.send = send;
+        return c;
     }
 
     // REMOVE THIS FROM HERE:
 
-    Call ISend(int dest) {
-        Call c = create();
-        c.send.dest = dest;
-        c.call_type = OpType::ISEND;
+
+    Call irecv(int count, int datatype, WInt src, WInt tag, int comm) {
+        return create(OpType::IRECV, Receive(count, datatype, src, tag, comm));
+    }
+
+    Call irecv(int src) {
+        return irecv(WInt(src));
+    }
+
+    Call irecv(WInt src) {
+        return irecv(0, 0, src, WILDCARD, 0);
+    }
+
+    Call recv(int count, int datatype, WInt src, WInt tag, int comm) {
+        return create(OpType::RECV, Receive(count, datatype, src, tag, comm));
+    }
+
+    Call send(int count, int datatype, int dest, int tag, int comm) {
+        return create(OpType::SEND, Send(count, datatype, dest, tag, comm));
+    }
+
+    Call ssend(int count, int datatype, int dest, int tag, int comm) {
+        return create(OpType::SSEND, Send(count, datatype, dest, tag, comm));
+    }
+
+    Call isend(int count, int datatype, int dest, int tag, int comm) {
+        return create(OpType::ISEND, Send(count, datatype, dest, tag, comm));
+    }
+
+    Call isend(int dest) {
+        return isend(0, 0, dest, 0, 0);
+    }
+
+    Call rsend(int count, int datatype, int dest, int tag, int comm) {
+        return create(OpType::RSEND, Send(count, datatype, dest, tag, comm));
+    }
+
+    Call wait(int request) {
+        Call c = create(OpType::WAIT);
+        c.wait.addRequest(request);
         return c;
     }
 
-    Call Barrier() {
-        Call c = create();
-        c.call_type = OpType::BARRIER;
+    Call barrier(int comm) {
+        Call c = create(OpType::BARRIER);
+        c.collective.set(Field::Communicator, comm);
         return c;
     }
 
-    Call IRecv(int src) {
-        return IRecv(WInt(src));
-    }
-
-    Call IRecv(WInt src) {
-        return IRecv(0, 0, src, WILDCARD, 0);
-    }
-
-    Call IRecv(int count, int datatype, WInt src, WInt rtag, int comm) {
-        Call c = create();
-        c.recv.src = src;
-        c.call_type = OpType::IRECV;
-        c.recv.tag = rtag;
-        c.metadata[Field::Count] = count;
-        c.metadata[Field::Datatype] = datatype;
-        c.metadata[Field::Communicator] = comm;
-        return c;
-    }
-
-    Call Recv(int count, int datatype, WInt src, WInt rtag, int comm) {
-        Call c = create();
-        c.recv.src = src;
-        c.call_type = OpType::RECV;
-        c.recv.tag = rtag;
-        c.metadata[Field::Count] = count;
-        c.metadata[Field::Datatype] = datatype;
-        c.metadata[Field::Communicator] = comm;
-        return c;
-    }
-
-    Call Send(int count, int datatype, int dest, int tag, int comm) {
-        Call c = create();
-        c.call_type = OpType::SEND;
-        c.send.dest = dest;
-        c.send.tag = tag;
-        c.metadata[Field::Count] = count;
-        c.metadata[Field::Datatype] = datatype;
-        c.metadata[Field::Communicator] = comm;
-        return c;
-    }
-
-    Call Ssend(int count, int datatype, int dest, int tag, int comm) {
-        Call c = create();
-        c.call_type = OpType::SSEND;
-        c.send.dest = dest;
-        c.send.tag = tag;
-        c.metadata[Field::Count] = count;
-        c.metadata[Field::Datatype] = datatype;
-        c.metadata[Field::Communicator] = comm;
-        return c;
-    }
-
-    Call Isend(int count, int datatype, int dest, int tag, int comm) {
-        Call c = create();
-        c.call_type = OpType::ISEND;
-        c.send.dest = dest;
-        c.send.tag = tag;
-        c.metadata[Field::Count] = count;
-        c.metadata[Field::Datatype] = datatype;
-        c.metadata[Field::Communicator] = comm;
-        return c;
-    }
-
-    Call Wait(int req) {
-        Call c = create();
-        c.call_type = OpType::WAIT;
-        c.wait.addRequest(req);
-        // XXX: e.count
-        return c;
+    Call barrier() {
+        return barrier(0);
     }
 };
 #endif

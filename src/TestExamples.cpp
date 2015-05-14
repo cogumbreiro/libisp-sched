@@ -13,21 +13,21 @@ TEST_CASE("ISP Tool Update: Scalable MPI Verification Fig.12.1 step-1") {
     Process P0(0), P1(1), P2(2);
     set<Call> trace;
     // P0:
-    Call c1 = P0.ISend(P1.pid);
+    Call c1 = P0.isend(P1.pid);
     trace.insert(c1);
-    Call c2 = P0.Barrier();
+    Call c2 = P0.barrier();
     trace.insert(c2);
     REQUIRE(! c1.completesBefore(c2));
     REQUIRE(! c2.completesBefore(c1));
     // P1:
-    Call c4 = P1.IRecv(WILDCARD);
+    Call c4 = P1.irecv(WILDCARD);
     trace.insert(c4);
-    Call c5 = P1.Barrier();
+    Call c5 = P1.barrier();
     trace.insert(c5);
     REQUIRE(! c4.completesBefore(c5));
     REQUIRE(! c5.completesBefore(c4));
     // P2:
-    Call c7 = P2.Barrier();
+    Call c7 = P2.barrier();
     trace.insert(c7);
 
     auto ms = get_match_sets(trace);
@@ -53,15 +53,15 @@ TEST_CASE("ISP Tool Update: Scalable MPI Verification Fig.12.1 step-2") {
     set<Call> trace;
     // P0:
     P0.curr_handle = 2;
-    Call c3 = P0.Wait(0);
+    Call c3 = P0.wait(0);
     trace.insert(c3);
     // P1:
     P1.curr_handle = 2;
-    Call c6 = P1.Wait(0);
+    Call c6 = P1.wait(0);
     trace.insert(c6);
     // P2:
     P2.curr_handle = 2;
-    Call c9 = P2.Wait(1);
+    Call c9 = P2.wait(1);
     trace.insert(c9);
 
     auto ms = get_match_sets(trace);
@@ -88,21 +88,21 @@ TEST_CASE("ISP Tool Update: Scalable MPI Verification Fig.12.1 step-3") {
     set<Call> trace;
     // P0:
     P0.curr_handle = 1;
-    Call c1 = P0.ISend(P1.pid);
+    Call c1 = P0.isend(P1.pid);
     trace.insert(c1);
-    Call c3 = P0.Wait(c1.handle);
+    Call c3 = P0.wait(c1.handle);
     trace.insert(c3);
     // P1:
     P1.curr_handle = 1;
-    Call c4 = P1.IRecv(WILDCARD);
+    Call c4 = P1.irecv(WILDCARD);
     trace.insert(c4);
-    Call c6 = P1.Wait(c4.handle);
+    Call c6 = P1.wait(c4.handle);
     trace.insert(c6);
     // P2:
     P0.curr_handle = 1;
-    Call c8 = P2.ISend(P1.pid);
+    Call c8 = P2.isend(P1.pid);
     trace.insert(c8);
-    Call c9 = P2.Wait(c8.handle);
+    Call c9 = P2.wait(c8.handle);
     trace.insert(c9);
 
     auto ms = get_match_sets(trace);

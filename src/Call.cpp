@@ -2,17 +2,13 @@
 
 Call::Call() : pid(0), handle(0), call_type(OpType::FINALIZE) {}
 
-Call::Call(int p, int i): pid(p), handle(i), call_type(OpType::FINALIZE),
-recv(), send(), wait() {}
-
 Call::Call(const Call & c):
     pid(c.pid),
     handle(c.handle),
     call_type(c.call_type),
     recv(c.recv),
     send(c.send),
-    wait(c.wait),
-    metadata(c.metadata) {}
+    wait(c.wait) {}
 
 bool Call::completesBefore(const Call & rhs) const {
     if (pid != rhs.pid || handle >= rhs.handle) {
@@ -29,9 +25,7 @@ bool Call::completesBefore(const Call & rhs) const {
     /*
      * 2) Send order rule
      */
-    if (is_send(call_type) && is_send(rhs.call_type)
-            && send.completesBefore(rhs.send)
-            && metadata == rhs.metadata) {
+    if (is_send(call_type) && is_send(rhs.call_type) && send == rhs.send) {
         return true;
     }
 
@@ -39,8 +33,7 @@ bool Call::completesBefore(const Call & rhs) const {
      * 3) Recv order rule
      */
     if (is_recv(call_type) && is_recv(rhs.call_type)
-            && recv.completesBefore(rhs.recv)
-            && metadata == rhs.metadata) {
+            && recv.matches(rhs.recv)) {
         return true;
     }
 
@@ -85,8 +78,7 @@ bool Call::operator== (const Call &c) const {
         && call_type == c.call_type
         && send == c.send
         && recv == c.recv
-        && wait == c.wait
-        && metadata == c.metadata;
+        && wait == c.wait;
 }
 
 bool Call::operator!= (const Call &c) const {
@@ -95,6 +87,5 @@ bool Call::operator!= (const Call &c) const {
 
 bool Call::canSend(const Call & recv) const {
     return is_send(call_type) && is_recv(recv.call_type)
-            && send.canSend(recv.recv)
-            && metadata == recv.metadata;
+            && send.canSend(recv.recv);
 }
