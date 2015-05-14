@@ -32,16 +32,24 @@ struct CallDB {
 
     vector<Call> findCollective() const;
 
+    vector<Call> getCollective(OpType type, int comm);
+
     vector<Call> findWait() const;
 
     vector<Call> findReceive() const;
 
     vector<Call> findReceiveAny() const;
 
+    vector<Call> findFinalize() const;
+
+    vector<Call> getFinalize() const;
+
     // get a send if it matches the given receive
     optional<Call> matchReceive(const Call &) const;
     // get all send that match this receive any
     vector<Call> matchReceiveAny(const Call &) const;
+
+    int participantsFor(int) const;
 
 private:
     int procs;
@@ -52,12 +60,12 @@ private:
     vector<Call> receiveAny;
     vector<Call> send;
     vector<Call> wait;
+    void addFinalize(const Call &);
     void addCollective(const Call &);
     void addReceive(const Call&);
     void addReceiveAny(const Call&);
     void addWait(const Call&);
     void addSend(const Call&);
-    int participantsFor(int) const;
 };
 
 #endif

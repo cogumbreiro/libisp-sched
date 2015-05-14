@@ -62,3 +62,14 @@ TEST_CASE("regression-2") {
     REQUIRE(c1.completesBefore(c3));
     REQUIRE(c3.hasAncestors(trace));
 }
+
+TEST_CASE("regression-3") {
+    auto P0 = Process(0);
+    auto c = P0.barrier(10);
+    auto comm = c.collective.get(Field::Communicator);
+    REQUIRE(c.pid == 0);
+    REQUIRE(c.handle == 0);
+    REQUIRE(comm);
+    REQUIRE(*comm == 10);
+    REQUIRE(is_collective(c.call_type));
+}

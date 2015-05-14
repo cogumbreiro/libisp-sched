@@ -26,6 +26,40 @@ TEST_CASE("recev-any-1") {
     REQUIRE(2 == db.matchReceiveAny(c3).size());
 }
 
+TEST_CASE("finalize") {
+    Schedule s;
+    s.procs = 3;
+    Process P0(0), P1(1), P2(2);
+    // P0:
+    s.calls.push_back(P0.finalize());
+    REQUIRE(CallDB(s).findFinalize().empty());
+    REQUIRE(CallDB(s).getFinalize().size() == 1);
+    s.calls.push_back(P1.finalize());
+    REQUIRE(CallDB(s).getFinalize().size() == 2);
+    REQUIRE(CallDB(s).findFinalize().empty());
+    s.calls.push_back(P1.finalize());
+    REQUIRE(CallDB(s).getFinalize().size() == 3);
+    REQUIRE(CallDB(s).findFinalize().size() == 3);
+}
+
+TEST_CASE("barrier") {
+    Schedule s;
+    s.procs = 3;
+    s.participants[10] = 3;
+    Process P0(0), P1(1), P2(2);
+    // P0:
+    s.calls.push_back(P0.barrier(10));
+    REQUIRE(CallDB(s).getCollective(OpType::BARRIER, 10).size() == 1);
+    REQUIRE(CallDB(s).findCollective().empty());
+    s.calls.push_back(P1.barrier(10));
+    REQUIRE(CallDB(s).getCollective(OpType::BARRIER, 10).size() == 2);
+    REQUIRE(CallDB(s).findCollective().empty());
+    s.calls.push_back(P1.barrier(10));
+    REQUIRE(CallDB(s).getCollective(OpType::BARRIER, 10).size() == 3);
+    REQUIRE(CallDB(s).participantsFor(10) == 3);
+    REQUIRE(CallDB(s).findCollective().size() == 3);
+}
+
 TEST_CASE("regression-1") {
     Schedule s;
     s.procs = 3;
@@ -44,5 +78,6 @@ TEST_CASE("regression-1") {
     // P2:
     Call c7 = P2.barrier();
     s.calls.push_back(c7);
-
+    CallDB db(s);
+    REQUIRE(db.findCollective().size() == 3);
 }

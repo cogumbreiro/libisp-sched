@@ -23,6 +23,10 @@ MatchSet Generator::matchWait() const {
     return MatchSet(db.findWait());
 }
 
+MatchSet Generator::matchFinalize() const {
+    return MatchSet(db.findFinalize());
+}
+
 vector<MatchSet> add_prefix(const MatchSet match, const vector<MatchSet> matches) {
     if (match.empty()) {
         return matches;
@@ -73,9 +77,10 @@ vector<MatchSet> Generator::matchReceiveAny() const {
 
 vector<MatchSet> Generator::getMatchSets() const {
     MatchSet ms;
-    ms.append(std::move(matchCollective()));
-    ms.append(std::move(matchReceive()));
-    ms.append(std::move(matchWait()));
+    ms.append(matchCollective());
+    ms.append(matchReceive());
+    ms.append(matchWait());
+    ms.append(matchFinalize());
     vector<MatchSet> result;
     result.push_back(ms);
     return ms.empty() ? matchReceiveAny() : result;

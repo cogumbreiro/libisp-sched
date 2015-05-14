@@ -131,6 +131,8 @@ struct Send {
 };
 
 struct Collective {
+    Collective() {}
+    Collective(const Collective &c) : data(c.data) {}
 
     void set(Field f, int v) {
         data[f] = v;
@@ -270,6 +272,11 @@ struct Process {
     Call barrier() {
         return barrier(0);
     }
+
+    Call finalize() {
+        return create(OpType::FINALIZE);
+    }
+
 
 private:
 

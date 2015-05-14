@@ -24,6 +24,8 @@ struct Generator {
 
     MatchSet matchWait() const;
 
+    MatchSet matchFinalize() const;
+
     vector<MatchSet> matchReceiveAny() const;
 
     vector<MatchSet> getMatchSets() const;

@@ -1,5 +1,5 @@
 #include "CallDB.hpp"
-
+#include <cassert>
 
 /* This enumerator is used internally to categorize the calls. */
 enum class MPIKind {
@@ -8,6 +8,7 @@ enum class MPIKind {
     Receive,
     Send,
     Wait,
+    Finalize,
     Unknown
 };
 
@@ -21,6 +22,8 @@ MPIKind to_kind(const Call &env) {
         return MPIKind::Send;
     } else if (is_wait(env.call_type)) {
         return MPIKind::Wait;
+    } else if (env.call_type == OpType::FINALIZE) {
+        return MPIKind::Finalize;
     }
     return MPIKind::Unknown;
 }
@@ -44,19 +47,24 @@ void CallDB::add(const Call &call) {
         addSend(call); return;
     case MPIKind::Wait:
         addWait(call); return;
+    case MPIKind::Finalize:
+        addFinalize(call); return;
     case MPIKind::Unknown:
         // do nothing
         return;
     }
 }
 
+void CallDB::addFinalize(const Call &call) {
+    finalize.push_back(call);
+    return;
+}
+
 void CallDB::addCollective(const Call &call) {
-    if (call.call_type == OpType::FINALIZE) {
-        finalize.push_back(call);
-        return;
-    }
     if (auto comm = call.collective.get(Field::Communicator)) {
         collective[call.call_type][*comm].push_back(call);
+    } else {
+        assert(0); // Collectives must have a Communicator field.
     }
 }
 
@@ -84,8 +92,11 @@ int CallDB::participantsFor(int comm) const {
     return iter->second;
 }
 
+vector<Call> CallDB::getCollective(OpType type, int comm) {
+    return collective[type][comm];
+}
+
 vector<Call> CallDB::findCollective() const {
-    // assume all are barrier calls ready to be issued
     vector<Call> result;
     for (auto & entry : collective) {
         for (auto kv : entry.second) {
@@ -96,10 +107,19 @@ vector<Call> CallDB::findCollective() const {
             }
         }
     }
+    return result;
+}
+
+vector<Call> CallDB::findFinalize() const {
+    vector<Call> result;
     if (procs == (int) finalize.size()) {
         result.insert(result.end(), finalize.begin(), finalize.end());
     }
     return result;
+}
+
+vector<Call> CallDB::getFinalize() const {
+    return finalize;
 }
 
 vector<Call> CallDB::findWait() const {
