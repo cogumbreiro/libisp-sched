@@ -81,7 +81,7 @@ vector<MatchSet> Generator::getMatchSets() const {
     return ms.empty() ? matchReceiveAny() : result;
 }
 
-vector<MatchSet> get_match_sets(const set<Call> & enabled) {
-    CallDB db(check(enabled)); // make sure the DB is checked
+vector<MatchSet> get_match_sets(const Schedule & schedule) {
+    CallDB db(schedule); // make sure the DB is checked
     return Generator(db).getMatchSets();
 }

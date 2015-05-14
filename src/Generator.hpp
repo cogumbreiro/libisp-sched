@@ -31,6 +31,6 @@ struct Generator {
 
 vector<MatchSet> mix(const vector<MatchSet>, const vector<MatchSet>);
 
-vector<MatchSet> get_match_sets(const set<Call> & enabled);
+vector<MatchSet> get_match_sets(const Schedule &schedule);
 
 #endif

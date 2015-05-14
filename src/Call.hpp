@@ -136,6 +136,15 @@ struct Collective {
         data[f] = v;
     }
 
+    optional<int> get(Field f) const {
+        optional<int> result;
+        auto iter = data.find(f);
+        if (iter != data.end()) {
+            result.reset(iter->second);
+        }
+        return result;
+    }
+
     bool operator==(const Collective &c) {
         return data == c.data;
     }
@@ -202,33 +211,13 @@ struct Call {
     }
 };
 
+/**
+ * @brief A factory of Call objects, should be used per process.
+ */
 struct Process {
     int pid;
     int curr_handle;
     Process(int pid) : pid(pid), curr_handle(0) {}
-
-    Call create(OpType call_type) {
-        Call c;
-        c.pid = pid;
-        c.handle = curr_handle++;
-        c.call_type = call_type;
-        return c;
-    }
-
-    Call create(OpType call_type, const Receive &recv) {
-        Call c = create(call_type);
-        c.recv = recv;
-        return c;
-    }
-
-    Call create(OpType call_type, const Send &send) {
-        Call c = create(call_type);
-        c.send = send;
-        return c;
-    }
-
-    // REMOVE THIS FROM HERE:
-
 
     Call irecv(int count, int datatype, WInt src, WInt tag, int comm) {
         return create(OpType::IRECV, Receive(count, datatype, src, tag, comm));
@@ -280,6 +269,28 @@ struct Process {
 
     Call barrier() {
         return barrier(0);
+    }
+
+private:
+
+    Call create(OpType call_type) {
+        Call c;
+        c.pid = pid;
+        c.handle = curr_handle++;
+        c.call_type = call_type;
+        return c;
+    }
+
+    Call create(OpType call_type, const Receive &recv) {
+        Call c = create(call_type);
+        c.recv = recv;
+        return c;
+    }
+
+    Call create(OpType call_type, const Send &send) {
+        Call c = create(call_type);
+        c.send = send;
+        return c;
     }
 };
 #endif

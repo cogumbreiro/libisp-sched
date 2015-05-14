@@ -6,15 +6,17 @@
 
 TEST_CASE("regression-1") {
     Process P0(0), P1(1), P2(2);
-    set<Call> trace;
+    vector<Call> trace;
     Call c1 = P0.isend(P1.pid);
-    trace.insert(c1);
+    trace.push_back(c1);
     Call c4 = P1.irecv(WILDCARD);
-    trace.insert(c4);
+    trace.push_back(c4);
     Call c8 = P2.isend(P1.pid);
-    trace.insert(c8);
+    trace.push_back(c8);
 
-    auto ms = get_match_sets(trace);
+    Schedule s;
+    s.calls = trace;
+    auto ms = get_match_sets(s);
     REQUIRE(2 == ms.size());
     {
         auto inter = ms[0].toVector();
@@ -39,20 +41,22 @@ TEST_CASE("regression-1") {
 TEST_CASE("recev-any-1") {
     Process P0(0), P1(1), P2(2);
 
-    set<Call> trace;
+    vector<Call> trace;
     // P0:
     Call c1 = P0.isend(P2.pid);
-    trace.insert(c1);
+    trace.push_back(c1);
 
     // P1:
     Call c2 = P1.isend(P2.pid);
-    trace.insert(c2);
+    trace.push_back(c2);
 
     // P2:
     Call c3 = P2.irecv(WILDCARD);
-    trace.insert(c3);
+    trace.push_back(c3);
 
-    auto ms = get_match_sets(trace);
+    Schedule s;
+    s.calls = trace;
+    auto ms = get_match_sets(s);
     // the receive any forks 2 states:
     REQUIRE(2 == ms.size());
     auto inter = ms[0].toVector();

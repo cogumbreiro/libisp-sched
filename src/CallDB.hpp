@@ -10,8 +10,23 @@ using std::set;
 using std::vector;
 using boost::optional;
 
+struct Schedule {
+    /**
+     * The calls to be scheduled;
+     */
+    vector<Call> calls;
+    /**
+     * The number of processes in the system.
+     */
+    int procs;
+    /**
+     * For each communicator set the number of participants
+     */
+    map<int, int> participants;
+};
+
 struct CallDB {
-    CallDB(const set<Call> & enabled);
+    CallDB(const Schedule & schedule);
 
     void add(const Call &call);
 
@@ -29,7 +44,10 @@ struct CallDB {
     vector<Call> matchReceiveAny(const Call &) const;
 
 private:
-    vector<Call> collective;
+    int procs;
+    map<int, int> participants;
+    map<OpType, map<int, vector<Call> > > collective;
+    vector<Call> finalize;
     vector<Call> receive;
     vector<Call> receiveAny;
     vector<Call> send;
@@ -39,6 +57,7 @@ private:
     void addReceiveAny(const Call&);
     void addWait(const Call&);
     void addSend(const Call&);
+    int participantsFor(int) const;
 };
 
 #endif

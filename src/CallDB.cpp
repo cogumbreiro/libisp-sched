@@ -25,8 +25,9 @@ MPIKind to_kind(const Call &env) {
     return MPIKind::Unknown;
 }
 
-CallDB::CallDB(const set<Call> & enabled) {
-    for (auto call : enabled) {
+CallDB::CallDB(const Schedule &schedule) :
+        procs(schedule.procs), participants(schedule.participants) {
+    for (auto call : schedule.calls) {
         add(call);
     }
 }
@@ -50,7 +51,13 @@ void CallDB::add(const Call &call) {
 }
 
 void CallDB::addCollective(const Call &call) {
-    collective.push_back(call);
+    if (call.call_type == OpType::FINALIZE) {
+        finalize.push_back(call);
+        return;
+    }
+    if (auto comm = call.collective.get(Field::Communicator)) {
+        collective[call.call_type][*comm].push_back(call);
+    }
 }
 
 void CallDB::addReceiveAny(const Call &call) {
@@ -69,9 +76,30 @@ void CallDB::addWait(const Call &call) {
     wait.push_back(call);
 }
 
+int CallDB::participantsFor(int comm) const {
+    auto iter = participants.find(comm);
+    if (iter == participants.end()) {
+        return 0;
+    }
+    return iter->second;
+}
+
 vector<Call> CallDB::findCollective() const {
     // assume all are barrier calls ready to be issued
-    return collective;
+    vector<Call> result;
+    for (auto & entry : collective) {
+        for (auto kv : entry.second) {
+            int comm = kv.first;
+            vector<Call> & calls = kv.second;
+            if (participantsFor(comm) == (int) calls.size()) {
+                result.insert(result.end(), calls.begin(), calls.end());
+            }
+        }
+    }
+    if (procs == (int) finalize.size()) {
+        result.insert(result.end(), finalize.begin(), finalize.end());
+    }
+    return result;
 }
 
 vector<Call> CallDB::findWait() const {

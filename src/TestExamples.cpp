@@ -10,27 +10,25 @@ TEST_CASE("ISP Tool Update: Scalable MPI Verification Fig.12.1 step-1") {
      * P1: Irecv(*, &h1)     ; Barrier;
      * P2: Barrier;
      */
+    Schedule s;
+    s.procs = 3;
+    s.participants[0] = 3; // barrier is registered with communicator 0
     Process P0(0), P1(1), P2(2);
-    set<Call> trace;
     // P0:
     Call c1 = P0.isend(P1.pid);
-    trace.insert(c1);
+    s.calls.push_back(c1);
     Call c2 = P0.barrier();
-    trace.insert(c2);
-    REQUIRE(! c1.completesBefore(c2));
-    REQUIRE(! c2.completesBefore(c1));
+    s.calls.push_back(c2);
     // P1:
     Call c4 = P1.irecv(WILDCARD);
-    trace.insert(c4);
+    s.calls.push_back(c4);
     Call c5 = P1.barrier();
-    trace.insert(c5);
-    REQUIRE(! c4.completesBefore(c5));
-    REQUIRE(! c5.completesBefore(c4));
+    s.calls.push_back(c5);
     // P2:
     Call c7 = P2.barrier();
-    trace.insert(c7);
+    s.calls.push_back(c7);
 
-    auto ms = get_match_sets(trace);
+    auto ms = get_match_sets(s);
     // the program is *deterministic*, so only one trace is allowed
     REQUIRE(1 == ms.size());
     auto tmp = *ms.begin();
@@ -50,21 +48,23 @@ TEST_CASE("ISP Tool Update: Scalable MPI Verification Fig.12.1 step-2") {
      */
     Process P0(0), P1(1), P2(2);
     // GET THE SECOND PHASE ONCE ALL PROCESSES ARE BLOCKED
-    set<Call> trace;
+    vector<Call> trace;
     // P0:
     P0.curr_handle = 2;
     Call c3 = P0.wait(0);
-    trace.insert(c3);
+    trace.push_back(c3);
     // P1:
     P1.curr_handle = 2;
     Call c6 = P1.wait(0);
-    trace.insert(c6);
+    trace.push_back(c6);
     // P2:
     P2.curr_handle = 2;
     Call c9 = P2.wait(1);
-    trace.insert(c9);
+    trace.push_back(c9);
 
-    auto ms = get_match_sets(trace);
+    Schedule s;
+    s.calls = trace;
+    auto ms = get_match_sets(s);
     // the program is deterministic
     REQUIRE(1 == ms.size());
     // one where P1 receives a message from P0
@@ -85,27 +85,32 @@ TEST_CASE("ISP Tool Update: Scalable MPI Verification Fig.12.1 step-3") {
      */
     Process P0(0), P1(1), P2(2);
     // GET THE SECOND PHASE ONCE ALL PROCESSES ARE BLOCKED
-    set<Call> trace;
+    vector<Call> trace;
     // P0:
     P0.curr_handle = 1;
     Call c1 = P0.isend(P1.pid);
-    trace.insert(c1);
+    trace.push_back(c1);
     Call c3 = P0.wait(c1.handle);
-    trace.insert(c3);
+    trace.push_back(c3);
     // P1:
     P1.curr_handle = 1;
     Call c4 = P1.irecv(WILDCARD);
-    trace.insert(c4);
+    trace.push_back(c4);
     Call c6 = P1.wait(c4.handle);
-    trace.insert(c6);
+    trace.push_back(c6);
     // P2:
     P0.curr_handle = 1;
     Call c8 = P2.isend(P1.pid);
-    trace.insert(c8);
+    trace.push_back(c8);
     Call c9 = P2.wait(c8.handle);
-    trace.insert(c9);
+    trace.push_back(c9);
 
-    auto ms = get_match_sets(trace);
+    REQUIRE(c8.canSend(c4));
+    REQUIRE(c1.canSend(c4));
+
+    Schedule s;
+    s.calls = trace;
+    auto ms = get_match_sets(s);
     // the program is nondeterministic; two traces are allowed
     REQUIRE(2 == ms.size());
     {
