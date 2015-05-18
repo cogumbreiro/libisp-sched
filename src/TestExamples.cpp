@@ -2,6 +2,7 @@
 #include <catch.hpp>
 
 #include "Generator.hpp"
+#include "Process.hpp"
 
 // DOI: 10.1007/978-3-642-11261-4_12
 TEST_CASE("ISP Tool Update: Scalable MPI Verification Fig.12.1 step-1") {
@@ -10,6 +11,7 @@ TEST_CASE("ISP Tool Update: Scalable MPI Verification Fig.12.1 step-1") {
      * P1: Irecv(*, &h1)     ; Barrier;
      * P2: Barrier;
      */
+    int COMM_WORLD = 0;
     Schedule s;
     s.procs = 3;
     s.participants[0] = 3; // barrier is registered with communicator 0
@@ -17,15 +19,15 @@ TEST_CASE("ISP Tool Update: Scalable MPI Verification Fig.12.1 step-1") {
     // P0:
     Call c1 = P0.isend(P1.pid);
     s.calls.push_back(c1);
-    Call c2 = P0.barrier();
+    Call c2 = P0.barrier(COMM_WORLD);
     s.calls.push_back(c2);
     // P1:
     Call c4 = P1.irecv(WILDCARD);
     s.calls.push_back(c4);
-    Call c5 = P1.barrier();
+    Call c5 = P1.barrier(COMM_WORLD);
     s.calls.push_back(c5);
     // P2:
-    Call c7 = P2.barrier();
+    Call c7 = P2.barrier(COMM_WORLD);
     s.calls.push_back(c7);
 
     auto ms = get_match_sets(s);

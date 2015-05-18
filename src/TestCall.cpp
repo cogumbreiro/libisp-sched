@@ -2,6 +2,7 @@
 #include <catch.hpp>
 
 #include "Call.hpp"
+#include "Process.hpp"
 
 Call call(int pid, int handle) {
     Call c;

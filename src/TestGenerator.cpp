@@ -2,7 +2,7 @@
 #include <catch.hpp>
 
 #include "Generator.hpp"
-
+#include "Process.hpp"
 
 TEST_CASE("regression-1") {
     Process P0(0), P1(1), P2(2);

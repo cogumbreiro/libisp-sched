@@ -8,7 +8,6 @@ project(libisp-sched)
 set(CPM_NO_UPDATE TRUE)
 include(cpm/CPM.cmake)
 CPM_AddModule("catch" GIT_REPOSITORY "https://github.com/bcachet/cpm-catch")
-# find_package( Boost REQUIRED COMPONENTS iterator )
 CPM_AddModule("boost"
     GIT_REPOSITORY "https://github.com/cogumbreiro/cpm-boost"
     GIT_TAG "1.57.0")
@@ -34,7 +33,13 @@ enable_testing()
 
 set(SRC
     src/name2id.cpp
+    src/WInt.cpp
+    src/Receive.cpp
+    src/Send.cpp
+    src/Collective.cpp
+    src/Wait.cpp
     src/Call.cpp
+    src/Process.cpp
     src/Checker.cpp
     src/MatchSet.cpp
     src/CallDB.cpp

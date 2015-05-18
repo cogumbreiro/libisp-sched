@@ -12,6 +12,19 @@ Call::Call(const Call & c):
     collective(c.collective) {}
 
 bool Call::completesBefore(const Call & rhs) const {
+    /*
+     * Copyright (c) 2008-2009
+     *
+     * Copyright (c) 2015 Tiago Cogumbreiro
+     *
+     * School of Computing, University of Utah,
+     * Salt Lake City, UT 84112, USA
+     *
+     * and the Gauss Group
+     * http://www.cs.utah.edu/formal_verification
+     *
+     * See LICENSE.ISP for licensing information
+     */
     if (pid != rhs.pid || handle >= rhs.handle) {
         return false;
     }
