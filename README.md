@@ -43,7 +43,7 @@ Include the generator (that yields the matchsets) and the process (a factory to 
 ```
 
 Create a schedule, set the total number of participants (processes)
-and also set how many participants the default communcitator `COMM_WORLD` has.
+and also set how many participants the default communicator `COMM_WORLD` has.
 ```C++
 int COMM_WORLD = 0;
 Schedule s;
@@ -54,13 +54,13 @@ s.participants[COMM_WORLD] = 3;
 Now create three processes and schedule their calls:
 ```C++
 Process P0(0), P1(1), P2(2);
+Call c1 = isend(P0, P1.pid);
 // P0:
-Call c1 = P0.isend(P1.pid);
 s.calls.push_back(c1);
 Call c2 = P0.barrier(COMM_WORLD);
 s.calls.push_back(c2);
 // P1:
-Call c4 = P1.irecv(WILDCARD);
+Call c4 = irecv(P1, WILDCARD);
 s.calls.push_back(c4);
 Call c5 = P1.barrier(COMM_WORLD);
 s.calls.push_back(c5);
