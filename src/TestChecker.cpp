@@ -12,6 +12,19 @@ Call call(int pid, int handle) {
     return c;
 }
 
+Call isend(Process &p, int pid) {
+    return p.isend(0, 0, pid, 0, 0);
+}
+
+Call irecv(Process &p, WInt pid) {
+    return p.irecv(0, 0, pid, WInt(0), 0);
+}
+
+Call irecv(Process &p, int pid) {
+    return irecv(p, WInt(pid));
+}
+
+
 TEST_CASE("Testing sort_by_procs") {
     set<Call> calls;
     calls.insert(call(1, 10));
@@ -45,17 +58,17 @@ TEST_CASE("regression-1") {
     // GET THE SECOND PHASE ONCE ALL PROCESSES ARE BLOCKED
     set<Call> trace;
     // P0:
-    Call c1 = P0.isend(P1.pid);
+    Call c1 = isend(P0, P1.pid);
     trace.insert(c1);
     Call c3 = P0.wait(c1.handle);
     trace.insert(c3);
     // P1:
-    Call c4 = P1.irecv(WILDCARD);
+    Call c4 = irecv(P1, WILDCARD);
     trace.insert(c4);
     Call c6 = P1.wait(c4.handle);
     trace.insert(c6);
     // P2:
-    Call c8 = P2.isend(P1.pid);
+    Call c8 = isend(P2, P1.pid);
     trace.insert(c8);
     Call c9 = P2.wait(c8.handle);
     trace.insert(c9);

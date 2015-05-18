@@ -6,14 +6,6 @@ Call Process::irecv(int count, int datatype, WInt src, WInt tag, int comm) {
     return create(OpType::IRECV, Receive(count, datatype, src, tag, comm));
 }
 
-Call Process::irecv(int src) {
-    return irecv(WInt(src));
-}
-
-Call Process::irecv(WInt src) {
-    return irecv(0, 0, src, WILDCARD, 0);
-}
-
 Call Process::recv(int count, int datatype, WInt src, WInt tag, int comm) {
     return create(OpType::RECV, Receive(count, datatype, src, tag, comm));
 }
@@ -28,10 +20,6 @@ Call Process::ssend(int count, int datatype, int dest, int tag, int comm) {
 
 Call Process::isend(int count, int datatype, int dest, int tag, int comm) {
     return create(OpType::ISEND, Send(count, datatype, dest, tag, comm));
-}
-
-Call Process::isend(int dest) {
-    return isend(0, 0, dest, 0, 0);
 }
 
 Call Process::rsend(int count, int datatype, int dest, int tag, int comm) {

@@ -11,6 +11,10 @@ Call call(int pid, int handle) {
     return c;
 }
 
+Call isend(Process &p, int pid) {
+    return p.isend(0, 0, pid, 0, 0);
+}
+
 TEST_CASE("Testing call::equals") {
     REQUIRE(call(1, 10) == call(1, 10));
     REQUIRE(call(1, 5) == call(1, 5));
@@ -39,15 +43,15 @@ TEST_CASE("Testing call::<") {
 
 TEST_CASE("regression-1") {
     auto P0 = Process(0), P1 = Process(1);
-    Call c1 = P0.isend(P1.pid);
+    Call c1 = isend(P0, P1.pid);
     Call c3 = P0.wait(c1.handle);
     REQUIRE(c1.call_type == OpType::ISEND);
     REQUIRE(c3.call_type == OpType::WAIT);
-//    REQUIRE(c1.send.count == 0);
+    REQUIRE(c1.pid == c3.pid);
+    REQUIRE(c1.handle == 0);
+    REQUIRE(c3.handle == 1);
     REQUIRE(c1 < c3);
     REQUIRE(c1.completesBefore(c3));
-//    REQUIRE(c1.envelope == Envelope::ISend(P1));
-//    REQUIRE(c1.completesBefore(c3));
 }
 
 TEST_CASE("regression-2") {
@@ -55,7 +59,7 @@ TEST_CASE("regression-2") {
     // GET THE SECOND PHASE ONCE ALL PROCESSES ARE BLOCKED
     set<Call> trace;
     // P0:
-    Call c1 = P0.isend(P1.pid);
+    Call c1 = isend(P0, P1.pid);
     trace.insert(c1);
     Call c3 = P0.wait(c1.handle);
     REQUIRE(c1.pid == c3.pid);

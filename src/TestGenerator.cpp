@@ -4,14 +4,27 @@
 #include "Generator.hpp"
 #include "Process.hpp"
 
+
+Call isend(Process &p, int pid) {
+    return p.isend(0, 0, pid, 0, 0);
+}
+
+Call irecv(Process &p, WInt pid) {
+    return p.irecv(0, 0, pid, WInt(0), 0);
+}
+
+Call irecv(Process &p, int pid) {
+    return irecv(p, WInt(pid));
+}
+
 TEST_CASE("regression-1") {
     Process P0(0), P1(1), P2(2);
     vector<Call> trace;
-    Call c1 = P0.isend(P1.pid);
+    Call c1 = isend(P0, P1.pid);
     trace.push_back(c1);
-    Call c4 = P1.irecv(WILDCARD);
+    Call c4 = irecv(P1, WILDCARD);
     trace.push_back(c4);
-    Call c8 = P2.isend(P1.pid);
+    Call c8 = isend(P2, P1.pid);
     trace.push_back(c8);
 
     Schedule s;
@@ -44,19 +57,19 @@ TEST_CASE("regression-2") {
     s.participants[0] = 3; // barrier is registered with communicator 0
 
     P0.curr_handle = 1;
-    Call c1 = P0.isend(P1.pid);
+    Call c1 = isend(P0, P1.pid);
     s.calls.push_back(c1);
     Call c3 = P0.wait(c1.handle);
     s.calls.push_back(c3);
 
     P1.curr_handle = 1;
-    Call c4 = P1.irecv(WILDCARD);
+    Call c4 = irecv(P1, WILDCARD);
     s.calls.push_back(c4);
     Call c6 = P1.wait(c4.handle);
     s.calls.push_back(c6);
 
     P0.curr_handle = 1;
-    Call c8 = P2.isend(P1.pid);
+    Call c8 = isend(P2, P1.pid);
     s.calls.push_back(c8);
     Call c9 = P2.wait(c8.handle);
     s.calls.push_back(c9);
@@ -79,15 +92,15 @@ TEST_CASE("recev-any-1") {
 
     vector<Call> trace;
     // P0:
-    Call c1 = P0.isend(P2.pid);
+    Call c1 = isend(P0, P2.pid);
     trace.push_back(c1);
 
     // P1:
-    Call c2 = P1.isend(P2.pid);
+    Call c2 = isend(P1, P2.pid);
     trace.push_back(c2);
 
     // P2:
-    Call c3 = P2.irecv(WILDCARD);
+    Call c3 = irecv(P2, WILDCARD);
     trace.push_back(c3);
 
     Schedule s;
@@ -113,23 +126,23 @@ TEST_CASE("permutations-1") {
     Process P0(0), P1(1), P2(2);
 
     // P0:
-    Call c1 = P0.isend(P0.pid);
+    Call c1 = isend(P0, P0.pid);
     MatchSet s1;
     s1.add(c1);
 
     // P1:
-    Call c2 = P1.isend(P1.pid);
+    Call c2 = isend(P1, P1.pid);
     MatchSet s2;
     s2.add(c2);
     vector<MatchSet> v1 {s1, s2};
 
     // P2:
-    Call c3 = P2.irecv(WILDCARD);
+    Call c3 = irecv(P2, WILDCARD);
     MatchSet s3;
     s3.add(c3);
 
     // P2:
-    Call c4 = P2.irecv(WILDCARD);
+    Call c4 = irecv(P2, WILDCARD);
     MatchSet s4;
     s4.add(c4);
     vector<MatchSet> v2 {s3, s4};

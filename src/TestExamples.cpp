@@ -4,6 +4,18 @@
 #include "Generator.hpp"
 #include "Process.hpp"
 
+Call isend(Process &p, int pid) {
+    return p.isend(0, 0, pid, 0, 0);
+}
+
+Call irecv(Process &p, WInt pid) {
+    return p.irecv(0, 0, pid, WInt(0), 0);
+}
+
+Call irecv(Process &p, int pid) {
+    return irecv(p, WInt(pid));
+}
+
 // DOI: 10.1007/978-3-642-11261-4_12
 TEST_CASE("ISP Tool Update: Scalable MPI Verification Fig.12.1 step-1") {
     /*
@@ -17,12 +29,12 @@ TEST_CASE("ISP Tool Update: Scalable MPI Verification Fig.12.1 step-1") {
     s.participants[0] = 3; // barrier is registered with communicator 0
     Process P0(0), P1(1), P2(2);
     // P0:
-    Call c1 = P0.isend(P1.pid);
+    Call c1 = isend(P0, P1.pid);
     s.calls.push_back(c1);
     Call c2 = P0.barrier(COMM_WORLD);
     s.calls.push_back(c2);
     // P1:
-    Call c4 = P1.irecv(WILDCARD);
+    Call c4 = irecv(P1, WILDCARD);
     s.calls.push_back(c4);
     Call c5 = P1.barrier(COMM_WORLD);
     s.calls.push_back(c5);
@@ -94,19 +106,19 @@ TEST_CASE("ISP Tool Update: Scalable MPI Verification Fig.12.1 step-3") {
 
     // P0:
     P0.curr_handle = 1;
-    Call c1 = P0.isend(P1.pid);
+    Call c1 = isend(P0, P1.pid);
     s.calls.push_back(c1);
     Call c3 = P0.wait(c1.handle);
     s.calls.push_back(c3);
     // P1:
     P1.curr_handle = 1;
-    Call c4 = P1.irecv(WILDCARD);
+    Call c4 = irecv(P1, WILDCARD);
     s.calls.push_back(c4);
     Call c6 = P1.wait(c4.handle);
     s.calls.push_back(c6);
     // P2:
     P0.curr_handle = 1;
-    Call c8 = P2.isend(P1.pid);
+    Call c8 = isend(P2, P1.pid);
     s.calls.push_back(c8);
     Call c9 = P2.wait(c8.handle);
     s.calls.push_back(c9);

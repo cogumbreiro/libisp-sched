@@ -16,10 +16,6 @@ struct Process {
 
     Call irecv(int count, int datatype, WInt src, WInt tag, int comm);
 
-    Call irecv(int src);
-
-    Call irecv(WInt src);
-
     Call recv(int count, int datatype, WInt src, WInt tag, int comm);
 
     Call send(int count, int datatype, int dest, int tag, int comm);
@@ -27,8 +23,6 @@ struct Process {
     Call ssend(int count, int datatype, int dest, int tag, int comm);
 
     Call isend(int count, int datatype, int dest, int tag, int comm);
-
-    Call isend(int dest);
 
     Call rsend(int count, int datatype, int dest, int tag, int comm);
 
