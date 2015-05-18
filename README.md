@@ -37,14 +37,14 @@ The scheduler is a mediator between the program and the runtime.
 # Example
 
 Include the generator (that yields the matchsets) and the process (a factory to build call objects).
-```
+```C++
 #include "Generator.hpp"
 #include "Process.hpp"
 ```
 
 Create a schedule, set the total number of participants (processes)
 and also set how many participants the default communcitator `COMM_WORLD` has.
-```
+```C++
 int COMM_WORLD = 0;
 Schedule s;
 s.procs = 3;
@@ -52,7 +52,7 @@ s.participants[COMM_WORLD] = 3;
 ```
 
 Now create three processes and schedule their calls:
-```
+```C++
 Process P0(0), P1(1), P2(2);
 // P0:
 Call c1 = P0.isend(P1.pid);
@@ -69,7 +69,7 @@ Call c7 = P2.barrier(COMM_WORLD);
 s.calls.push_back(c7);
 ```
 Now given a schedule generate all possible matchsets, which in this case will be three.
-```
+```C++
 auto ms = get_match_sets(s);
 // the program is *deterministic*, so only one trace is allowed
 REQUIRE(1 == ms.size());
