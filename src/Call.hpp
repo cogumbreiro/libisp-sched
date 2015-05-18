@@ -10,7 +10,7 @@
 #include <set>
 #include <utility>
 
-#include "name2id.hpp"
+#include "CallType.hpp"
 #include "Receive.hpp"
 #include "Send.hpp"
 #include "Collective.hpp"
@@ -32,7 +32,7 @@ struct Call {
     /** The logical time at which this call has been issued (monotonic). */
     int handle;
     /** The op type defines which payload to use */
-    OpType call_type;
+    CallType call_type;
     /** The payload of the MPI call */
     Receive recv;
     Send send;

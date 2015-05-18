@@ -64,13 +64,13 @@ TEST_CASE("barrier") {
     Process P0(0), P1(1), P2(2);
     // P0:
     s.calls.push_back(P0.barrier(10));
-    REQUIRE(CallDB(s).getCollective(OpType::BARRIER, 10).size() == 1);
+    REQUIRE(CallDB(s).getCollective(CallType::BARRIER, 10).size() == 1);
     REQUIRE(CallDB(s).findCollective().empty());
     s.calls.push_back(P1.barrier(10));
-    REQUIRE(CallDB(s).getCollective(OpType::BARRIER, 10).size() == 2);
+    REQUIRE(CallDB(s).getCollective(CallType::BARRIER, 10).size() == 2);
     REQUIRE(CallDB(s).findCollective().empty());
     s.calls.push_back(P2.barrier(10));
-    REQUIRE(CallDB(s).getCollective(OpType::BARRIER, 10).size() == 3);
+    REQUIRE(CallDB(s).getCollective(CallType::BARRIER, 10).size() == 3);
     REQUIRE(CallDB(s).participantsFor(10) == 3);
     REQUIRE(CallDB(s).findCollective().size() == 3);
 }

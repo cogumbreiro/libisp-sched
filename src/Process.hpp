@@ -69,13 +69,13 @@ struct Process {
     Call finalize();
 
 private:
-    Call create(OpType call_type);
+    Call create(CallType call_type);
 
-    Call create(OpType call_type, const Receive &recv);
+    Call create(CallType call_type, const Receive &recv);
 
-    Call create(OpType call_type, const Send &send);
+    Call create(CallType call_type, const Send &send);
 
-    Call create(OpType call_type, const Collective &);
+    Call create(CallType call_type, const Collective &);
 };
 
 #endif

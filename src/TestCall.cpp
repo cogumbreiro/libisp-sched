@@ -45,8 +45,8 @@ TEST_CASE("regression-1") {
     auto P0 = Process(0), P1 = Process(1);
     Call c1 = isend(P0, P1.pid);
     Call c3 = P0.wait(c1.handle);
-    REQUIRE(c1.call_type == OpType::ISEND);
-    REQUIRE(c3.call_type == OpType::WAIT);
+    REQUIRE(c1.call_type == CallType::ISEND);
+    REQUIRE(c3.call_type == CallType::WAIT);
     REQUIRE(c1.pid == c3.pid);
     REQUIRE(c1.handle == 0);
     REQUIRE(c3.handle == 1);

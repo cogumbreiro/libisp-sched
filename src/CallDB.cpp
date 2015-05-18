@@ -23,7 +23,7 @@ MPIKind to_kind(const Call &env) {
         return MPIKind::Send;
     } else if (is_wait(env.call_type)) {
         return MPIKind::Wait;
-    } else if (env.call_type == OpType::FINALIZE) {
+    } else if (env.call_type == CallType::FINALIZE) {
         return MPIKind::Finalize;
     }
     return MPIKind::Unknown;
@@ -94,7 +94,7 @@ int CallDB::participantsFor(int comm) const {
     return iter->second;
 }
 
-vector<Call> CallDB::getCollective(OpType type, int comm) {
+vector<Call> CallDB::getCollective(CallType type, int comm) {
     return collective[type][comm];
 }
 

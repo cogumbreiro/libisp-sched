@@ -32,7 +32,7 @@ struct CallDB {
 
     vector<Call> findCollective() const;
 
-    vector<Call> getCollective(OpType type, int comm);
+    vector<Call> getCollective(CallType type, int comm);
 
     vector<Call> findWait() const;
 
@@ -54,7 +54,7 @@ struct CallDB {
 private:
     int procs;
     map<int, int> participants;
-    map<OpType, map<int, vector<Call> > > collective;
+    map<CallType, map<int, vector<Call> > > collective;
     vector<Call> finalize;
     vector<Call> receive;
     vector<Call> receiveAny;

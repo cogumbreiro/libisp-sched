@@ -32,7 +32,7 @@ add_definitions (
 enable_testing()
 
 set(SRC
-    src/name2id.cpp
+    src/CallType.cpp
     src/WInt.cpp
     src/Receive.cpp
     src/Send.cpp

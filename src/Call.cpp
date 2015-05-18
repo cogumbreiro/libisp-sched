@@ -1,6 +1,6 @@
 #include "Call.hpp"
 
-Call::Call() : pid(0), handle(0), call_type(OpType::FINALIZE) {}
+Call::Call() : pid(0), handle(0), call_type(CallType::FINALIZE) {}
 
 Call::Call(const Call & c):
     pid(c.pid),
@@ -54,19 +54,19 @@ bool Call::completesBefore(const Call & rhs) const {
     /*
      * 4) iRecv -> Wait order rule
      */
-    if (call_type == OpType::IRECV &&
-            ((rhs.call_type == OpType::WAIT) ||
-             (rhs.call_type == OpType::TEST))) {
+    if (call_type == CallType::IRECV &&
+            ((rhs.call_type == CallType::WAIT) ||
+             (rhs.call_type == CallType::TEST))) {
         return true;
     }
 
-    if ((call_type == OpType::IRECV || call_type == OpType::ISEND)
+    if ((call_type == CallType::IRECV || call_type == CallType::ISEND)
             && (is_wait(rhs.call_type) || is_test(rhs.call_type))
             && rhs.wait.requested(handle)) {
         return true;
     }
 
-    if (rhs.call_type == OpType::FINALIZE) {
+    if (rhs.call_type == CallType::FINALIZE) {
         return true;
     }
 
