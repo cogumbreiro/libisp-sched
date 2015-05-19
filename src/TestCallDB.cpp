@@ -75,6 +75,31 @@ TEST_CASE("barrier") {
     REQUIRE(CallDB(s).findCollective().size() == 3);
 }
 
+TEST_CASE("barrier-mismatch") {
+    Schedule s;
+    s.procs = 2;
+    s.participants[3] = 2;
+    Process P0(0), P1(1);
+    CallDB db(s);
+    db.add(P0.reduce(0, 1, 2, 3));
+    REQUIRE(db.findCollective().size() == 0);
+    REQUIRE(db.getCollective(CallType::REDUCE, 3).size() == 1);
+    REQUIRE(db.findCollective().size() == 0);
+
+    REQUIRE(!db.add(P1.reduce(999, 1, 2, 3)));
+    REQUIRE(db.getCollective(CallType::REDUCE, 3).size() == 1);
+
+    REQUIRE(!db.add(P1.reduce(0, 999, 2, 3)));
+    REQUIRE(db.getCollective(CallType::REDUCE, 3).size() == 1);
+
+    REQUIRE(! db.add(P1.reduce(0, 1, 999, 3)));
+    REQUIRE(db.getCollective(CallType::REDUCE, 3).size() == 1);
+
+    REQUIRE(db.add(P1.reduce(0, 1, 2, 3)));
+    REQUIRE(db.getCollective(CallType::REDUCE, 3).size() == 2);
+    REQUIRE(db.findCollective().size() == 2);
+}
+
 TEST_CASE("regression-1") {
     int COMM_WORLD = 0;
     Schedule s;
