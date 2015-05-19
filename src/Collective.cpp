@@ -16,8 +16,12 @@ optional<int> Collective::get(Field f) const {
     return result;
 }
 
-bool Collective::operator==(const Collective &c) {
+bool Collective::operator==(const Collective &c) const {
     return data == c.data;
+}
+
+bool Collective::operator!=(const Collective &c) const {
+    return data != c.data;
 }
 
 Collective & Collective::operator=(const Collective & other) {
@@ -58,11 +62,9 @@ Collective Collective::comm_dup(int comm) {
     return c;
 }
 
-Collective Collective::comm_split(int comm, int color, int key) {
+Collective Collective::comm_split(int comm) {
     Collective c;
     c.set(Field::Communicator, comm);
-    c.set(Field::Color, color);
-    c.set(Field::Key, key);
     return c;
 }
 

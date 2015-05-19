@@ -32,7 +32,9 @@ struct Collective {
 
     optional<int> get(Field f) const;
 
-    bool operator==(const Collective &c);
+    bool operator==(const Collective &c) const;
+
+    bool operator!=(const Collective &c) const;
 
     Collective & operator=(const Collective & other);
 
@@ -48,7 +50,7 @@ struct Collective {
 
     static Collective comm_dup(int comm);
 
-    static Collective comm_split(int comm, int color, int key);
+    static Collective comm_split(int comm);
 
     static Collective comm_free(int comm);
 
