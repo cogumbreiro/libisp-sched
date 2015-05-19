@@ -28,11 +28,24 @@ struct Schedule {
 struct CallDB {
     CallDB(const Schedule & schedule);
 
-    void add(const Call &call);
+    bool add(const Call &call);
 
     vector<Call> findCollective() const;
-
-    vector<Call> getCollective(CallType type, int comm);
+    /**
+     * @brief getCollective
+     * @param call_type
+     * @param comm
+     * @return all collectives associated of a given call_type and communicator.
+     */
+    vector<Call> getCollective(CallType call_type, int comm);
+    /**
+     *
+     * @brief getCollective
+     * @param call_type
+     * @return all collectives associated of a given call_type unspeficied
+     *   communicator.
+     */
+    vector<Call> getCollective(CallType call_type);
 
     vector<Call> findWait() const;
 
@@ -54,18 +67,20 @@ struct CallDB {
 private:
     int procs;
     map<int, int> participants;
-    map<CallType, map<int, vector<Call> > > collective;
+    map<CallType, map<int, vector<Call> > > commCollectives;
+    map<CallType, vector<Call> > worldCollectives;
     vector<Call> finalize;
     vector<Call> receive;
     vector<Call> receiveAny;
     vector<Call> send;
     vector<Call> wait;
     void addFinalize(const Call &);
-    void addCollective(const Call &);
+    bool addCollective(const Call &);
     void addReceive(const Call&);
     void addReceiveAny(const Call&);
     void addWait(const Call&);
     void addSend(const Call&);
+    vector<Call> & getCollective(const Call & call);
 };
 
 #endif

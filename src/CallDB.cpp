@@ -37,24 +37,25 @@ CallDB::CallDB(const Schedule &schedule) :
     }
 }
 
-void CallDB::add(const Call &call) {
+bool CallDB::add(const Call &call) {
     switch(to_kind(call)) {
     case MPIKind::Collective:
-        addCollective(call); return;
+        return addCollective(call);
     case MPIKind::ReceiveAny:
-        addReceiveAny(call); return;
+        addReceiveAny(call); return true;
     case MPIKind::Receive:
-        addReceive(call); return;
+        addReceive(call); return true;
     case MPIKind::Send:
-        addSend(call); return;
+        addSend(call); return true;
     case MPIKind::Wait:
-        addWait(call); return;
+        addWait(call); return true;
     case MPIKind::Finalize:
-        addFinalize(call); return;
+        addFinalize(call); return true;
     case MPIKind::Unknown:
         // do nothing
-        return;
+        return false;
     }
+    return false;
 }
 
 void CallDB::addFinalize(const Call &call) {
@@ -62,12 +63,21 @@ void CallDB::addFinalize(const Call &call) {
     return;
 }
 
-void CallDB::addCollective(const Call &call) {
+vector<Call>& CallDB::getCollective(const Call &call) {
     if (auto comm = call.collective.get(Field::Communicator)) {
-        collective[call.call_type][*comm].push_back(call);
-    } else {
-        assert(0); // Collectives must have a Communicator field.
+        return commCollectives[call.call_type][*comm];
     }
+    return worldCollectives[call.call_type];
+}
+
+bool CallDB::addCollective(const Call &call) {
+    vector<Call> & calls = getCollective(call);
+    if (calls.size() > 0 && calls[0].collective != call.collective) {
+        // all collectives must have the same parameters to match
+        return false;
+    }
+    calls.push_back(call);
+    return true;
 }
 
 void CallDB::addReceiveAny(const Call &call) {
@@ -95,18 +105,28 @@ int CallDB::participantsFor(int comm) const {
 }
 
 vector<Call> CallDB::getCollective(CallType type, int comm) {
-    return collective[type][comm];
+    return commCollectives[type][comm];
+}
+
+vector<Call> CallDB::getCollective(CallType type) {
+    return worldCollectives[type];
 }
 
 vector<Call> CallDB::findCollective() const {
     vector<Call> result;
-    for (auto & entry : collective) {
+    for (auto & entry : commCollectives) {
         for (auto kv : entry.second) {
             int comm = kv.first;
             vector<Call> & calls = kv.second;
             if (participantsFor(comm) == (int) calls.size()) {
                 result.insert(result.end(), calls.begin(), calls.end());
             }
+        }
+    }
+    for (auto & entry : worldCollectives) {
+        auto & calls = entry.second;
+        if (procs == (int) calls.size()) {
+            result.insert(result.end(), calls.begin(), calls.end());
         }
     }
     return result;
