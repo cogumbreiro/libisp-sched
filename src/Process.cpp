@@ -52,8 +52,8 @@ Call Process::comm_dup(int comm) {
     return create(CallType::COMM_DUP, Collective::comm_dup(comm));
 }
 
-Call Process::comm_split(int comm, int color, int key) {
-    return create(CallType::COMM_SPLIT, Collective::comm_split(comm, color, key));
+Call Process::comm_split(int comm) {
+    return create(CallType::COMM_SPLIT, Collective::comm_split(comm));
 }
 
 Call Process::comm_free(int comm) {

@@ -38,7 +38,7 @@ struct Process {
 
     Call comm_dup(int comm);
 
-    Call comm_split(int comm, int color, int key);
+    Call comm_split(int comm);
 
     Call comm_free(int comm);
 
